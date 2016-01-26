@@ -32,6 +32,7 @@ type containerStoreEventHandler struct {
 	store               ContainerStore
 	client              RawClient
 	dockerEventsChannel *(chan *dockerClient.APIEvents)
+	listenMutex         sync.Mutex
 }
 
 // NewContainerStoreEventHandler a new event handler that updates the container
@@ -55,6 +56,9 @@ func (handler *containerStoreEventHandler) DockerEventsChannel() chan *dockerCli
 
 func (handler *containerStoreEventHandler) Listen() error {
 	var writeGroup sync.WaitGroup
+
+	handler.listenMutex.Lock()
+	defer handler.listenMutex.Unlock()
 
 	for event := range handler.DockerEventsChannel() {
 		if event == nil {
@@ -81,8 +85,8 @@ func (handler *containerStoreEventHandler) Listen() error {
 		}
 	}
 
-	writeGroup.Wait()
 	handler.dockerEventsChannel = nil
+	writeGroup.Wait()
 
 	return errors.New("Docker events connection closed")
 }
