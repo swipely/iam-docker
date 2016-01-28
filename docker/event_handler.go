@@ -55,7 +55,7 @@ func (handler *containerStoreEventHandler) Listen() error {
 		case "start":
 			writeGroup.Add(1)
 			go func() {
-				log.Info("Adding container, ID:", event.ID)
+				log.Info("Adding container ID: ", event.ID)
 				err := handler.addContainer(event.ID)
 				if err != nil {
 					_ = log.Warn("Unable to add container ID: ", event.ID, ", Error: ", err.Error())
@@ -65,7 +65,7 @@ func (handler *containerStoreEventHandler) Listen() error {
 		case "die":
 			writeGroup.Add(1)
 			go func() {
-				log.Info("Removing container ID:", event.ID)
+				log.Info("Removing container ID: ", event.ID)
 				handler.store.RemoveContainer(event.ID)
 				writeGroup.Done()
 			}()
@@ -93,6 +93,7 @@ func (handler *containerStoreEventHandler) SyncRunningContainers() error {
 	for _, apiContainer := range apiContainers {
 		id := apiContainer.ID
 		go func() {
+			log.Info("Adding container ID: ", id)
 			err := handler.addContainer(id)
 			if err != nil {
 				_ = log.Warn("Error adding container ", id, ": ", err.Error())
