@@ -31,19 +31,6 @@ var _ = Describe("ContainerStore", func() {
 		})
 	})
 
-	Describe("RemoveContainer", func() {
-		BeforeEach(func() {
-			store.AddContainer(id, ip, iamRole)
-			store.RemoveContainer(id)
-		})
-
-		It("Removes the container from the store", func() {
-			role, err := store.IAMRoleForIP(ip)
-			Expect(role).To(Equal(""))
-			Expect(err).ToNot(BeNil())
-		})
-	})
-
 	Describe("IAMRoleForIP", func() {
 		Context("When the container is not in the store", func() {
 			It("Returns an error", func() {
@@ -63,6 +50,37 @@ var _ = Describe("ContainerStore", func() {
 				Expect(role).To(Equal(iamRole))
 				Expect(err).To(BeNil())
 			})
+		})
+	})
+
+	Describe("RemoveContainer", func() {
+		BeforeEach(func() {
+			store.AddContainer(id, ip, iamRole)
+			store.RemoveContainer(id)
+		})
+
+		It("Removes the container from the store", func() {
+			role, err := store.IAMRoleForIP(ip)
+			Expect(role).To(Equal(""))
+			Expect(err).ToNot(BeNil())
+		})
+	})
+
+	Describe("Reset", func() {
+		BeforeEach(func() {
+			store.AddContainer(id, ip, iamRole)
+		})
+
+		It("Resets the state of the store", func() {
+			role, err := store.IAMRoleForIP(ip)
+			Expect(role).To(Equal(iamRole))
+			Expect(err).To(BeNil())
+
+			store.Reset()
+
+			role, err = store.IAMRoleForIP(ip)
+			Expect(role).To(Equal(""))
+			Expect(err).ToNot(BeNil())
 		})
 	})
 })

@@ -8,8 +8,9 @@ import (
 // Instances of this interface should allow threadsafe reads and writes.
 type ContainerStore interface {
 	AddContainer(name string, ip string, iamRole string)
-	RemoveContainer(name string)
 	IAMRoleForIP(ip string) (string, error)
+	RemoveContainer(name string)
+	Reset()
 }
 
 // EventHandler instances implement DockerEventsChannel() which performs actions

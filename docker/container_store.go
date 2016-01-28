@@ -20,18 +20,6 @@ func (store *containerStore) AddContainer(name string, ip string, iamRole string
 	store.containerNamesByIP[ip] = name
 }
 
-func (store *containerStore) RemoveContainer(name string) {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
-
-	config, hasKey := store.configByContainerName[name]
-	if hasKey {
-		delete(store.containerNamesByIP, config.ip)
-		delete(store.configByContainerName, name)
-	}
-
-}
-
 func (store *containerStore) IAMRoleForIP(ip string) (string, error) {
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
@@ -47,6 +35,25 @@ func (store *containerStore) IAMRoleForIP(ip string) (string, error) {
 	}
 
 	return config.iamRole, nil
+}
+
+func (store *containerStore) RemoveContainer(name string) {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
+	config, hasKey := store.configByContainerName[name]
+	if hasKey {
+		delete(store.containerNamesByIP, config.ip)
+		delete(store.configByContainerName, name)
+	}
+
+}
+
+func (store *containerStore) Reset() {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+	store.containerNamesByIP = make(map[string]string)
+	store.configByContainerName = make(map[string]containerConfig)
 }
 
 type containerConfig struct {
