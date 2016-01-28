@@ -14,27 +14,6 @@ const (
 	dockerEventsChannelSize = 1000
 )
 
-// EventHandler instances implement DockerEventsChannel() which performs actions
-// based on Docker events. Listen() is a blocking function which performs an
-// action based on the events written to the channel.
-type EventHandler interface {
-	DockerEventsChannel() chan *dockerClient.APIEvents
-	Listen() error
-}
-
-// RawClient specifies the subset of commands that EventHandlers use from the
-// go-dockerclient.
-type RawClient interface {
-	InspectContainer(id string) (*dockerClient.Container, error)
-}
-
-type containerStoreEventHandler struct {
-	store               ContainerStore
-	client              RawClient
-	dockerEventsChannel *(chan *dockerClient.APIEvents)
-	listenMutex         sync.Mutex
-}
-
 // NewContainerStoreEventHandler a new event handler that updates the container
 // store based on Docker event updates. It requires a handle on the
 // dockerClient.Client as well to retrieve metadata about added containers.
@@ -124,4 +103,11 @@ func findIAMRole(env []string) (string, error) {
 	}
 
 	return "", fmt.Errorf("Unable to find environment variable with prefix: %s", iamPrefix)
+}
+
+type containerStoreEventHandler struct {
+	store               ContainerStore
+	client              RawClient
+	dockerEventsChannel *(chan *dockerClient.APIEvents)
+	listenMutex         sync.Mutex
 }

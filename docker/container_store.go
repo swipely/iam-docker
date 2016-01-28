@@ -5,25 +5,6 @@ import (
 	"sync"
 )
 
-// ContainerStore exposes methods to handle container lifecycle events.
-// Instances of this interface should allow threadsafe reads and writes.
-type ContainerStore interface {
-	AddContainer(name string, ip string, iamRole string)
-	RemoveContainer(name string)
-	IAMRoleForIP(ip string) (string, error)
-}
-
-type containerConfig struct {
-	ip      string
-	iamRole string
-}
-
-type containerStore struct {
-	mutex                 sync.RWMutex
-	containerNamesByIP    map[string]string
-	configByContainerName map[string]containerConfig
-}
-
 // NewContainerStore creates an empty container store.
 func NewContainerStore() ContainerStore {
 	return &containerStore{
@@ -66,4 +47,15 @@ func (store *containerStore) IAMRoleForIP(ip string) (string, error) {
 	}
 
 	return config.iamRole, nil
+}
+
+type containerConfig struct {
+	ip      string
+	iamRole string
+}
+
+type containerStore struct {
+	mutex                 sync.RWMutex
+	containerNamesByIP    map[string]string
+	configByContainerName map[string]containerConfig
 }
