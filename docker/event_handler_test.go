@@ -1,6 +1,7 @@
 package docker_test
 
 import (
+	"errors"
 	"fmt"
 	dockerClient "github.com/fsouza/go-dockerclient"
 	. "github.com/swipely/iam-docker/docker"
@@ -11,6 +12,7 @@ import (
 
 type MockDockerClient struct {
 	inspectContainer func(id string) (*dockerClient.Container, error)
+	listContainers   func(opts dockerClient.ListContainersOptions) ([]dockerClient.APIContainers, error)
 }
 
 func (client *MockDockerClient) InspectContainer(id string) (*dockerClient.Container, error) {
@@ -19,6 +21,15 @@ func (client *MockDockerClient) InspectContainer(id string) (*dockerClient.Conta
 	}
 	container, err := client.inspectContainer(id)
 	return container, err
+
+}
+
+func (client *MockDockerClient) ListContainers(opts dockerClient.ListContainersOptions) ([]dockerClient.APIContainers, error) {
+	if client.listContainers == nil {
+		return nil, errors.New("unable to list containers because mock was not set")
+	}
+	containers, err := client.listContainers(opts)
+	return containers, err
 
 }
 
@@ -161,6 +172,74 @@ var _ = Describe("EventHandler", func() {
 					Expect(role).To(Equal(""))
 					Expect(err).ToNot(BeNil())
 				})
+			})
+		})
+	})
+
+	Describe("SyncRunningContainers", func() {
+		Context("When there is an error listing the running containers", func() {
+			JustBeforeEach(func() {
+				client.listContainers = func(opts dockerClient.ListContainersOptions) ([]dockerClient.APIContainers, error) {
+					return nil, errors.New("Error communicating with Docker")
+				}
+			})
+
+			It("Raises an error", func() {
+				err := handler.SyncRunningContainers()
+				Expect(err).ToNot(BeNil())
+			})
+		})
+
+		Context("When listing the running containers succeeds", func() {
+			var (
+				apiContainers []dockerClient.APIContainers
+			)
+
+			JustBeforeEach(func() {
+				apiContainers = []dockerClient.APIContainers{
+					dockerClient.APIContainers{ID: "DEADBEEF"},
+					dockerClient.APIContainers{ID: "CA55E77E"},
+				}
+
+				client.listContainers = func(opts dockerClient.ListContainersOptions) ([]dockerClient.APIContainers, error) {
+					return apiContainers, nil
+				}
+				client.inspectContainer = func(id string) (*dockerClient.Container, error) {
+					if id == "DEADBEEF" {
+						container := &dockerClient.Container{
+							Config: &dockerClient.Config{
+								Env: []string{"IAM_PROFILE=test-iam-role"},
+							},
+							NetworkSettings: &dockerClient.NetworkSettings{
+								IPAddress: "172.0.0.2",
+							},
+						}
+						return container, nil
+					} else if id == "CA55E77E" {
+						container := &dockerClient.Container{
+							Config: &dockerClient.Config{
+								Env: []string{},
+							},
+							NetworkSettings: &dockerClient.NetworkSettings{
+								IPAddress: "172.0.0.3",
+							},
+						}
+						return container, nil
+					}
+
+					return nil, fmt.Errorf("No such container: %s", id)
+				}
+			})
+
+			It("Adds the containers which have the necessary information", func() {
+				err := handler.SyncRunningContainers()
+				Expect(err).To(BeNil())
+				role, err := store.IAMRoleForIP("172.0.0.2")
+				Expect(role).To(Equal("test-iam-role"))
+				Expect(err).To(BeNil())
+				role, err = store.IAMRoleForIP("172.0.0.3")
+				Expect(role).To(Equal(""))
+				Expect(err).ToNot(BeNil())
 			})
 		})
 	})

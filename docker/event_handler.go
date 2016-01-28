@@ -14,6 +14,14 @@ const (
 	dockerEventsChannelSize = 1000
 )
 
+var (
+	runningContainersOpts = dockerClient.ListContainersOptions{
+		Filters: map[string][]string{
+			"status=": []string{"running"},
+		},
+	}
+)
+
 // NewContainerStoreEventHandler a new event handler that updates the container
 // store based on Docker event updates. It requires a handle on the
 // dockerClient.Client as well to retrieve metadata about added containers.
@@ -68,6 +76,35 @@ func (handler *containerStoreEventHandler) Listen() error {
 	writeGroup.Wait()
 
 	return errors.New("Docker events connection closed")
+}
+
+func (handler *containerStoreEventHandler) SyncRunningContainers() error {
+	log.Info("Syncing the running containers")
+	var writeGroup sync.WaitGroup
+
+	handler.store.Reset()
+	apiContainers, err := handler.client.ListContainers(runningContainersOpts)
+	if err != nil {
+		_ = log.Warn("Error listing containers: ", err.Error())
+		return err
+	}
+
+	writeGroup.Add(len(apiContainers))
+	for _, apiContainer := range apiContainers {
+		id := apiContainer.ID
+		go func() {
+			err := handler.addContainer(id)
+			if err != nil {
+				_ = log.Warn("Error adding container ", id, ": ", err.Error())
+			}
+			writeGroup.Done()
+		}()
+	}
+
+	writeGroup.Wait()
+	log.Info("Successfully synced running contaniers")
+
+	return nil
 }
 
 func (handler *containerStoreEventHandler) addContainer(id string) error {

@@ -19,10 +19,12 @@ type ContainerStore interface {
 type EventHandler interface {
 	DockerEventsChannel() chan *dockerClient.APIEvents
 	Listen() error
+	SyncRunningContainers() error
 }
 
 // RawClient specifies the subset of commands that EventHandlers use from the
 // go-dockerclient.
 type RawClient interface {
 	InspectContainer(id string) (*dockerClient.Container, error)
+	ListContainers(opts dockerClient.ListContainersOptions) ([]dockerClient.APIContainers, error)
 }
