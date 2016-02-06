@@ -36,7 +36,6 @@ func (handler *containerStoreEventHandler) Listen() error {
 	defer handler.listenMutex.Unlock()
 
 	workers.Add(concurrentEventHandlers)
-	defer workers.Wait()
 
 	for i := 0; i < concurrentEventHandlers; i++ {
 		go func() {
@@ -60,6 +59,7 @@ func (handler *containerStoreEventHandler) Listen() error {
 	}
 
 	close(eventChan)
+	workers.Wait()
 	handler.dockerEventsChannel = nil
 
 	return errors.New("Docker events connection closed")
