@@ -12,12 +12,6 @@ const (
 	realTimeGracePeriod = time.Second * 10
 )
 
-type credentialStore struct {
-	client STSClient
-	creds  map[string]*sts.Credentials
-	mutex  sync.RWMutex
-}
-
 // NewCredentialStore accepts an STSClient and creates a new cache for assumed
 // IAM credentials.
 func NewCredentialStore(client STSClient) CredentialStore {
@@ -68,4 +62,10 @@ func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Dur
 	store.mutex.Unlock()
 
 	return output.Credentials, nil
+}
+
+type credentialStore struct {
+	client STSClient
+	creds  map[string]*sts.Credentials
+	mutex  sync.RWMutex
 }
