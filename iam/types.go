@@ -1,7 +1,12 @@
 package iam
 
 import (
+	"github.com/Sirupsen/logrus"
 	sts "github.com/aws/aws-sdk-go/service/sts"
+)
+
+var (
+	log = logrus.WithFields(logrus.Fields{"package": "iam"})
 )
 
 // STSClient specifies the subset of STS API calls used by the CredentialStore.
