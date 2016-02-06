@@ -1,7 +1,12 @@
 package docker
 
 import (
+	"github.com/Sirupsen/logrus"
 	dockerClient "github.com/fsouza/go-dockerclient"
+)
+
+var (
+	log = logrus.WithFields(logrus.Fields{"package": "docker"})
 )
 
 // ContainerStore exposes methods to handle container lifecycle events.
@@ -19,8 +24,7 @@ type ContainerStore interface {
 // based on Docker events. Listen() is a blocking function which performs an
 // action based on the events written to the channel.
 type EventHandler interface {
-	DockerEventsChannel() chan *dockerClient.APIEvents
-	Listen() error
+	Listen(<-chan *dockerClient.APIEvents) error
 }
 
 // RawClient specifies the subset of commands that EventHandlers use from the

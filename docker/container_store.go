@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	dockerClient "github.com/fsouza/go-dockerclient"
 	"strings"
 	"sync"
@@ -33,11 +34,17 @@ func NewContainerStore(client RawClient) ContainerStore {
 }
 
 func (store *containerStore) AddContainerByID(id string) error {
+
 	config, err := store.findConfigForID(id)
 	if err != nil {
 		return err
 	}
 
+	log.WithFields(logrus.Fields{
+		"id":   id,
+		"ip":   config.ip,
+		"role": config.iamRole,
+	}).Info("Adding new container")
 	store.mutex.Lock()
 	store.containerIDsByIP[config.ip] = config.id
 	store.configByContainerID[config.id] = *config
@@ -47,6 +54,8 @@ func (store *containerStore) AddContainerByID(id string) error {
 }
 
 func (store *containerStore) IAMRoles() []string {
+	log.Debug("Fetching unique IAM Roles in the store")
+
 	store.mutex.RLock()
 	iamSet := make(map[string]bool, len(store.configByContainerID))
 	for _, config := range store.configByContainerID {
@@ -65,6 +74,8 @@ func (store *containerStore) IAMRoles() []string {
 }
 
 func (store *containerStore) IAMRoleForID(id string) (string, error) {
+	log.WithFields(logrus.Fields{"id": id}).Debug("Looking up IAM role")
+
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
 
@@ -77,6 +88,8 @@ func (store *containerStore) IAMRoleForID(id string) (string, error) {
 }
 
 func (store *containerStore) IAMRoleForIP(ip string) (string, error) {
+	log.WithFields(logrus.Fields{"ip": ip}).Debug("Looking up IAM role")
+
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
 
@@ -99,6 +112,7 @@ func (store *containerStore) RemoveContainer(id string) {
 	store.mutex.RUnlock()
 
 	if hasKey {
+		log.WithFields(logrus.Fields{"id": id}).Info("Removing container")
 		store.mutex.Lock()
 		delete(store.containerIDsByIP, config.ip)
 		delete(store.configByContainerID, id)
@@ -108,6 +122,8 @@ func (store *containerStore) RemoveContainer(id string) {
 }
 
 func (store *containerStore) SyncRunningContainers() error {
+	log.Info("Syncing the running containers")
+
 	apiContainers, err := store.listContainers()
 	if err != nil {
 		return err
@@ -127,6 +143,8 @@ func (store *containerStore) SyncRunningContainers() error {
 			store.configByContainerID[config.id] = *config
 		}
 	}
+
+	log.Info("Done syncing the running containers, %i now in the store", len(store.configByContainerID))
 
 	return nil
 }
@@ -158,6 +176,7 @@ func (store *containerStore) findConfigForID(id string) (*containerConfig, error
 }
 
 func (store *containerStore) listContainers() ([]dockerClient.APIContainers, error) {
+	log.Debug("Listing containers")
 	var containers []dockerClient.APIContainers
 	err := withRetries(func() error {
 		var e error
@@ -168,6 +187,7 @@ func (store *containerStore) listContainers() ([]dockerClient.APIContainers, err
 }
 
 func (store *containerStore) inspectContainer(id string) (*dockerClient.Container, error) {
+	log.WithFields(logrus.Fields{"id": id}).Debug("Inspecting container")
 	var container *dockerClient.Container
 	err := withRetries(func() error {
 		var e error

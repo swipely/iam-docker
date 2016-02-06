@@ -2,72 +2,82 @@ package docker
 
 import (
 	"errors"
+	"github.com/Sirupsen/logrus"
 	dockerClient "github.com/fsouza/go-dockerclient"
 	iam "github.com/swipely/iam-docker/iam"
 	"sync"
 )
 
-const (
-	concurrentEventHandlers = 4
-	dockerEventsChannelSize = 1000
-)
-
 // NewEventHandler a new event handler that updates the container and IAM stores
 // based on Docker event updates.
-func NewEventHandler(containerStore ContainerStore, credentialStore iam.CredentialStore) EventHandler {
+func NewEventHandler(workers int, containerStore ContainerStore, credentialStore iam.CredentialStore) EventHandler {
 	return &eventHandler{
-		containerStore:      containerStore,
-		credentialStore:     credentialStore,
-		dockerEventsChannel: nil,
+		workers:         workers,
+		containerStore:  containerStore,
+		credentialStore: credentialStore,
 	}
 }
 
-func (handler *eventHandler) DockerEventsChannel() chan *dockerClient.APIEvents {
-	if handler.dockerEventsChannel == nil {
-		channel := make(chan *dockerClient.APIEvents, dockerEventsChannelSize)
-		handler.dockerEventsChannel = &channel
-	}
-	return *handler.dockerEventsChannel
-}
-
-func (handler *eventHandler) Listen() error {
+func (handler *eventHandler) Listen(channel <-chan *dockerClient.APIEvents) error {
 	var workers sync.WaitGroup
-	channel := handler.DockerEventsChannel()
 
-	handler.listenMutex.Lock()
-	defer handler.listenMutex.Unlock()
-
-	workers.Add(concurrentEventHandlers)
-	for i := 0; i < concurrentEventHandlers; i++ {
+	workers.Add(handler.workers)
+	for id := 1; id <= handler.workers; id++ {
 		go func() {
-			for event := range channel {
-				id := event.ID
-				switch event.Status {
-				case "start":
-					err := handler.containerStore.AddContainerByID(id)
-					if err == nil {
-						role, err := handler.containerStore.IAMRoleForID(id)
-						if err == nil {
-							_, _ = handler.credentialStore.CredentialsForRole(role)
-						}
-					}
-				case "die":
-					handler.containerStore.RemoveContainer(id)
-				}
-			}
+			handler.work(id, channel)
 			workers.Done()
 		}()
 	}
-
 	workers.Wait()
-	handler.dockerEventsChannel = nil
 
 	return errors.New("Docker events connection closed")
 }
 
+func (handler *eventHandler) work(workerID int, channel <-chan *dockerClient.APIEvents) {
+	wlog := log.WithFields(logrus.Fields{"worker": workerID})
+	wlog.Info("Starting worker")
+	for event := range channel {
+		if (event.Status != "start") && (event.Status != "die") {
+			continue
+		}
+		elog := wlog.WithFields(logrus.Fields{
+			"id":    event.ID,
+			"event": event.Status,
+		})
+		elog.Info("Handling event")
+		if event.Status == "start" {
+			err := handler.containerStore.AddContainerByID(event.ID)
+			if err != nil {
+				elog.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Warn("Unable to add container")
+				continue
+			}
+			role, err := handler.containerStore.IAMRoleForID(event.ID)
+			if err != nil {
+				elog.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Warn("Unable to lookup IAM role")
+				continue
+			}
+			_, err = handler.credentialStore.CredentialsForRole(role)
+			elog = elog.WithFields(logrus.Fields{"role": role})
+			if err != nil {
+				elog.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Warn("Unable fetch credentials")
+				continue
+			}
+			elog.Info("Successfully fetched credentials")
+		} else {
+			handler.containerStore.RemoveContainer(event.ID)
+		}
+	}
+	wlog.Info("Work complete")
+}
+
 type eventHandler struct {
-	containerStore      ContainerStore
-	credentialStore     iam.CredentialStore
-	dockerEventsChannel *(chan *dockerClient.APIEvents)
-	listenMutex         sync.Mutex
+	containerStore  ContainerStore
+	credentialStore iam.CredentialStore
+	workers         int
 }
