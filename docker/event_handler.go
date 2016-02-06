@@ -3,6 +3,7 @@ package docker
 import (
 	"errors"
 	dockerClient "github.com/fsouza/go-dockerclient"
+	iam "github.com/swipely/iam-docker/iam"
 	"sync"
 )
 
@@ -11,16 +12,17 @@ const (
 	dockerEventsChannelSize = 1000
 )
 
-// NewContainerStoreEventHandler a new event handler that updates the container
-// store based on Docker event updates.
-func NewContainerStoreEventHandler(store ContainerStore) EventHandler {
-	return &containerStoreEventHandler{
-		store:               store,
+// NewEventHandler a new event handler that updates the container and IAM stores
+// based on Docker event updates.
+func NewEventHandler(containerStore ContainerStore, credentialStore iam.CredentialStore) EventHandler {
+	return &eventHandler{
+		containerStore:      containerStore,
+		credentialStore:     credentialStore,
 		dockerEventsChannel: nil,
 	}
 }
 
-func (handler *containerStoreEventHandler) DockerEventsChannel() chan *dockerClient.APIEvents {
+func (handler *eventHandler) DockerEventsChannel() chan *dockerClient.APIEvents {
 	if handler.dockerEventsChannel == nil {
 		channel := make(chan *dockerClient.APIEvents, dockerEventsChannelSize)
 		handler.dockerEventsChannel = &channel
@@ -28,7 +30,7 @@ func (handler *containerStoreEventHandler) DockerEventsChannel() chan *dockerCli
 	return *handler.dockerEventsChannel
 }
 
-func (handler *containerStoreEventHandler) Listen() error {
+func (handler *eventHandler) Listen() error {
 	var workers sync.WaitGroup
 	eventChan := make(chan *dockerClient.APIEvents, dockerEventsChannelSize)
 
@@ -43,9 +45,15 @@ func (handler *containerStoreEventHandler) Listen() error {
 				id := event.ID
 				switch event.Status {
 				case "start":
-					_ = handler.store.AddContainerByID(id)
+					err := handler.containerStore.AddContainerByID(id)
+					if err == nil {
+						role, err := handler.containerStore.IAMRoleForID(id)
+						if err == nil {
+							_, _ = handler.credentialStore.CredentialsForRole(role)
+						}
+					}
 				case "die":
-					handler.store.RemoveContainer(id)
+					handler.containerStore.RemoveContainer(id)
 				}
 			}
 			workers.Done()
@@ -65,8 +73,9 @@ func (handler *containerStoreEventHandler) Listen() error {
 	return errors.New("Docker events connection closed")
 }
 
-type containerStoreEventHandler struct {
-	store               ContainerStore
+type eventHandler struct {
+	containerStore      ContainerStore
+	credentialStore     iam.CredentialStore
 	dockerEventsChannel *(chan *dockerClient.APIEvents)
 	listenMutex         sync.Mutex
 }
