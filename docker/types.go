@@ -9,6 +9,7 @@ import (
 type ContainerStore interface {
 	AddContainerByID(id string) error
 	IAMRoleForIP(ip string) (string, error)
+	IAMRoleForID(ip string) (string, error)
 	RemoveContainer(name string)
 	SyncRunningContainers() error
 }

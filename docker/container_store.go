@@ -47,6 +47,18 @@ func (store *containerStore) AddContainerByID(id string) error {
 
 }
 
+func (store *containerStore) IAMRoleForID(id string) (string, error) {
+	store.mutex.RLock()
+	defer store.mutex.RUnlock()
+
+	config, hasKey := store.configByContainerID[id]
+	if !hasKey {
+		return "", fmt.Errorf("Unable to find config for container: %s", id)
+	}
+
+	return config.iamRole, nil
+}
+
 func (store *containerStore) IAMRoleForIP(ip string) (string, error) {
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
