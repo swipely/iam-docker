@@ -44,7 +44,24 @@ func (store *containerStore) AddContainerByID(id string) error {
 	store.mutex.Unlock()
 
 	return nil
+}
 
+func (store *containerStore) IAMRoles() []string {
+	store.mutex.RLock()
+	iamSet := make(map[string]bool, len(store.configByContainerID))
+	for _, config := range store.configByContainerID {
+		iamSet[config.iamRole] = true
+	}
+	store.mutex.RUnlock()
+
+	iamRoles := make([]string, len(iamSet))
+	count := 0
+	for role := range iamSet {
+		iamRoles[count] = role
+		count++
+	}
+
+	return iamRoles
 }
 
 func (store *containerStore) IAMRoleForID(id string) (string, error) {
