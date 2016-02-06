@@ -32,16 +32,15 @@ func (handler *eventHandler) DockerEventsChannel() chan *dockerClient.APIEvents 
 
 func (handler *eventHandler) Listen() error {
 	var workers sync.WaitGroup
-	eventChan := make(chan *dockerClient.APIEvents, dockerEventsChannelSize)
+	channel := handler.DockerEventsChannel()
 
 	handler.listenMutex.Lock()
 	defer handler.listenMutex.Unlock()
 
 	workers.Add(concurrentEventHandlers)
-
 	for i := 0; i < concurrentEventHandlers; i++ {
 		go func() {
-			for event := range eventChan {
+			for event := range channel {
 				id := event.ID
 				switch event.Status {
 				case "start":
@@ -60,13 +59,6 @@ func (handler *eventHandler) Listen() error {
 		}()
 	}
 
-	for event := range handler.DockerEventsChannel() {
-		if event != nil {
-			eventChan <- event
-		}
-	}
-
-	close(eventChan)
 	workers.Wait()
 	handler.dockerEventsChannel = nil
 
