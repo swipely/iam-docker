@@ -18,9 +18,8 @@ const (
 
 var (
 	runningContainersOpts = dockerClient.ListContainersOptions{
-		Filters: map[string][]string{
-			"status=": []string{"running"},
-		},
+		All:  false,
+		Size: false,
 	}
 )
 
@@ -34,14 +33,14 @@ func NewContainerStore(client RawClient) ContainerStore {
 }
 
 func (store *containerStore) AddContainerByID(id string) error {
-
+	logger := log.WithFields(logrus.Fields{"id": id})
+	logger.Debug("Attempting to add container")
 	config, err := store.findConfigForID(id)
 	if err != nil {
 		return err
 	}
 
-	log.WithFields(logrus.Fields{
-		"id":   id,
+	logger.WithFields(logrus.Fields{
 		"ip":   config.ip,
 		"role": config.iamRole,
 	}).Info("Adding new container")
@@ -139,12 +138,17 @@ func (store *containerStore) SyncRunningContainers() error {
 	for _, container := range apiContainers {
 		config, err := store.findConfigForID(container.ID)
 		if err == nil {
+			log.WithFields(logrus.Fields{
+				"id":   config.id,
+				"ip":   config.ip,
+				"role": config.iamRole,
+			}).Info("Adding new container")
 			store.containerIDsByIP[config.ip] = config.id
 			store.configByContainerID[config.id] = *config
 		}
 	}
 
-	log.Info("Done syncing the running containers, %i now in the store", len(store.configByContainerID))
+	log.Info("Done syncing the running containers, ", len(store.configByContainerID), " now in the store")
 
 	return nil
 }
@@ -189,11 +193,20 @@ func (store *containerStore) listContainers() ([]dockerClient.APIContainers, err
 func (store *containerStore) inspectContainer(id string) (*dockerClient.Container, error) {
 	log.WithFields(logrus.Fields{"id": id}).Debug("Inspecting container")
 	var container *dockerClient.Container
+	var notFound error
 	err := withRetries(func() error {
 		var e error
 		container, e = store.client.InspectContainer(id)
+		_, isNotFound := e.(*dockerClient.NoSuchContainer)
+		if isNotFound {
+			notFound = e
+			return nil
+		}
 		return e
 	})
+	if notFound != nil {
+		err = notFound
+	}
 	return container, err
 }
 
