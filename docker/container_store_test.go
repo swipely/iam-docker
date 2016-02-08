@@ -23,9 +23,18 @@ var _ = Describe("ContainerStore", func() {
 	Describe("AddContainerByID", func() {
 		const (
 			id = "DEADBEEF"
+			ip = "172.0.0.2"
 		)
 
-		Context("When the container cannot be found", func() {
+		BeforeEach(func() {
+			client.ContainersByID[id] = &dockerClient.Container{
+				ID:              id,
+				Config:          &dockerClient.Config{Env: []string{}},
+				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: ip},
+			}
+		})
+
+		Context("But it does not have an IAM role set", func() {
 			It("Does not add the container to the store", func() {
 				err := subject.AddContainerByID(id)
 				Expect(err).ToNot(BeNil())
@@ -35,45 +44,21 @@ var _ = Describe("ContainerStore", func() {
 			})
 		})
 
-		Context("When the container can be found", func() {
+		Context("And it has an IAM role set", func() {
 			const (
-				ip = "172.0.0.2"
+				role = "arn:aws:iam::012345678901:role/test"
 			)
 
 			BeforeEach(func() {
-				client.ContainersByID[id] = &dockerClient.Container{
-					ID:              id,
-					Config:          &dockerClient.Config{Env: []string{}},
-					NetworkSettings: &dockerClient.NetworkSettings{IPAddress: ip},
-				}
+				client.ContainersByID[id].Config.Env = []string{"IAM_PROFILE=" + role}
 			})
 
-			Context("But it does not have an IAM role set", func() {
-				It("Does not add the container to the store", func() {
-					err := subject.AddContainerByID(id)
-					Expect(err).ToNot(BeNil())
-					role, err := subject.IAMRoleForID(id)
-					Expect(role).To(Equal(""))
-					Expect(err).ToNot(BeNil())
-				})
-			})
-
-			Context("And it has an IAM role set", func() {
-				const (
-					role = "arn:aws:iam::012345678901:role/test"
-				)
-
-				BeforeEach(func() {
-					client.ContainersByID[id].Config.Env = []string{"IAM_PROFILE=" + role}
-				})
-
-				It("Adds the container to the store", func() {
-					err := subject.AddContainerByID(id)
-					Expect(err).To(BeNil())
-					actual, err := subject.IAMRoleForID(id)
-					Expect(actual).To(Equal(role))
-					Expect(err).To(BeNil())
-				})
+			It("Adds the container to the store", func() {
+				err := subject.AddContainerByID(id)
+				Expect(err).To(BeNil())
+				actual, err := subject.IAMRoleForID(id)
+				Expect(actual).To(Equal(role))
+				Expect(err).To(BeNil())
 			})
 		})
 	})

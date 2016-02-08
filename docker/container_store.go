@@ -193,20 +193,11 @@ func (store *containerStore) listContainers() ([]dockerClient.APIContainers, err
 func (store *containerStore) inspectContainer(id string) (*dockerClient.Container, error) {
 	log.WithFields(logrus.Fields{"id": id}).Debug("Inspecting container")
 	var container *dockerClient.Container
-	var notFound error
 	err := withRetries(func() error {
 		var e error
 		container, e = store.client.InspectContainer(id)
-		_, isNotFound := e.(*dockerClient.NoSuchContainer)
-		if isNotFound {
-			notFound = e
-			return nil
-		}
 		return e
 	})
-	if notFound != nil {
-		err = notFound
-	}
 	return container, err
 }
 
