@@ -5,45 +5,18 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/swipely/iam-docker/docker"
+	"github.com/swipely/iam-docker/mock"
 	"sort"
 )
 
-type mockClient struct {
-	containersByID map[string]*dockerClient.Container
-}
-
-func newMockClient() *mockClient {
-	return &mockClient{
-		containersByID: make(map[string]*dockerClient.Container),
-	}
-}
-
-func (mock *mockClient) InspectContainer(id string) (*dockerClient.Container, error) {
-	container, hasKey := mock.containersByID[id]
-	if !hasKey {
-		return nil, &dockerClient.NoSuchContainer{ID: id}
-	}
-	return container, nil
-}
-
-func (mock *mockClient) ListContainers(opts dockerClient.ListContainersOptions) ([]dockerClient.APIContainers, error) {
-	containers := make([]dockerClient.APIContainers, len(mock.containersByID))
-	count := 0
-	for id := range mock.containersByID {
-		containers[count] = dockerClient.APIContainers{ID: id}
-		count++
-	}
-	return containers, nil
-}
-
 var _ = Describe("ContainerStore", func() {
 	var (
-		client  *mockClient
+		client  *mock.DockerClient
 		subject ContainerStore
 	)
 
 	BeforeEach(func() {
-		client = newMockClient()
+		client = mock.NewDockerClient()
 		subject = NewContainerStore(client)
 	})
 
@@ -68,7 +41,7 @@ var _ = Describe("ContainerStore", func() {
 			)
 
 			BeforeEach(func() {
-				client.containersByID[id] = &dockerClient.Container{
+				client.ContainersByID[id] = &dockerClient.Container{
 					ID:              id,
 					Config:          &dockerClient.Config{Env: []string{}},
 					NetworkSettings: &dockerClient.NetworkSettings{IPAddress: ip},
@@ -91,7 +64,7 @@ var _ = Describe("ContainerStore", func() {
 				)
 
 				BeforeEach(func() {
-					client.containersByID[id].Config.Env = []string{"IAM_PROFILE=" + role}
+					client.ContainersByID[id].Config.Env = []string{"IAM_PROFILE=" + role}
 				})
 
 				It("Adds the container to the store", func() {
@@ -111,17 +84,17 @@ var _ = Describe("ContainerStore", func() {
 		)
 
 		BeforeEach(func() {
-			client.containersByID["DEADBEEF"] = &dockerClient.Container{
+			client.ContainersByID["DEADBEEF"] = &dockerClient.Container{
 				ID:              "DEADBEEF",
 				Config:          &dockerClient.Config{Env: []string{"IAM_PROFILE=arn:aws:iam::012345678901:role/alpha"}},
 				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.2"},
 			}
-			client.containersByID["FEEDABEE"] = &dockerClient.Container{
+			client.ContainersByID["FEEDABEE"] = &dockerClient.Container{
 				ID:              "FEEDABEE",
 				Config:          &dockerClient.Config{Env: []string{"IAM_PROFILE=arn:aws:iam::012345678901:role/beta"}},
 				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.3"},
 			}
-			client.containersByID["CA55E77E"] = &dockerClient.Container{
+			client.ContainersByID["CA55E77E"] = &dockerClient.Container{
 				ID:              "CA55E77E",
 				Config:          &dockerClient.Config{Env: []string{"IAM_PROFILE=arn:aws:iam::012345678901:role/alpha"}},
 				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.4"},
@@ -156,7 +129,7 @@ var _ = Describe("ContainerStore", func() {
 			)
 
 			BeforeEach(func() {
-				client.containersByID[id] = &dockerClient.Container{
+				client.ContainersByID[id] = &dockerClient.Container{
 					ID:              id,
 					Config:          &dockerClient.Config{Env: []string{"IAM_PROFILE=" + role}},
 					NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.2"},
@@ -189,7 +162,7 @@ var _ = Describe("ContainerStore", func() {
 
 		Context("When the IP is stored", func() {
 			BeforeEach(func() {
-				client.containersByID[id] = &dockerClient.Container{
+				client.ContainersByID[id] = &dockerClient.Container{
 					ID:              id,
 					Config:          &dockerClient.Config{Env: []string{"IAM_PROFILE=" + role}},
 					NetworkSettings: &dockerClient.NetworkSettings{IPAddress: ip},
@@ -226,7 +199,7 @@ var _ = Describe("ContainerStore", func() {
 
 		Context("When the ID is stored", func() {
 			BeforeEach(func() {
-				client.containersByID[id] = &dockerClient.Container{
+				client.ContainersByID[id] = &dockerClient.Container{
 					ID:              id,
 					Config:          &dockerClient.Config{Env: []string{"IAM_PROFILE=" + role}},
 					NetworkSettings: &dockerClient.NetworkSettings{IPAddress: ip},
@@ -249,17 +222,17 @@ var _ = Describe("ContainerStore", func() {
 	Describe("SyncRunningContainers", func() {
 
 		BeforeEach(func() {
-			client.containersByID["38BE1290"] = &dockerClient.Container{
+			client.ContainersByID["38BE1290"] = &dockerClient.Container{
 				ID:              "38BE1290",
 				Config:          &dockerClient.Config{Env: []string{"IAM_PROFILE=arn:aws:iam::012345678901:role/reader"}},
 				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.15"},
 			}
-			client.containersByID["EF10A722"] = &dockerClient.Container{
+			client.ContainersByID["EF10A722"] = &dockerClient.Container{
 				ID:              "EF10A722",
 				Config:          &dockerClient.Config{Env: []string{"IAM_PROFILE=arn:aws:iam::012345678901:role/writer"}},
 				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.16"},
 			}
-			client.containersByID["F00DF00D"] = &dockerClient.Container{
+			client.ContainersByID["F00DF00D"] = &dockerClient.Container{
 				ID:              "F00DF00D",
 				Config:          &dockerClient.Config{Env: []string{}},
 				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.17"},
