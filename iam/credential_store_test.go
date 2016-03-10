@@ -139,7 +139,7 @@ var _ = Describe("CredentialStore", func() {
 			sessionToken    = "fakesessiontoken"
 			creds           = &sts.Credentials{
 				AccessKeyId:     &accessKeyID,
-				Expiration:      &expiration,
+				Expiration:      &oldExpiration,
 				SecretAccessKey: &secretAccessKey,
 				SessionToken:    &sessionToken,
 			}
@@ -153,7 +153,8 @@ var _ = Describe("CredentialStore", func() {
 
 		JustBeforeEach(func() {
 			client.AssumableRoles[role] = creds
-			_, _ = client.CredentialsForRole(role)
+			_, _ = subject.CredentialsForRole(role)
+			client.AssumableRoles[role] = newCreds
 		})
 
 		It("Refreshes each credential in the store", func() {
