@@ -3,7 +3,7 @@ package iam
 import (
 	"fmt"
 	"github.com/Sirupsen/logrus"
-	sts "github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"sync"
 	"time"
 )
@@ -54,12 +54,16 @@ func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Dur
 	creds, hasKey := store.creds[arn]
 	store.mutex.RUnlock()
 
-	if hasKey && time.Now().Add(gracePeriod).Before(*creds.Expiration) {
-		clog.Info("Credential is fresh")
-		return creds, nil
+	if hasKey {
+		if time.Now().Add(gracePeriod).Before(*creds.Expiration) {
+			clog.Info("Credential is fresh")
+			return creds, nil
+		}
+		clog.Info("Credential is stale, refreshing")
+	} else {
+		clog.Info("Credential is not in the store")
 	}
 
-	clog.Info("Credential is stale, refreshing")
 	output, err := store.client.AssumeRole(&sts.AssumeRoleInput{RoleArn: &arn})
 
 	if err != nil {
