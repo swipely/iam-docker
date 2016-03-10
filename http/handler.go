@@ -6,8 +6,6 @@ import (
 	"github.com/swipely/iam-docker/docker"
 	"github.com/swipely/iam-docker/iam"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"regexp"
 	"time"
 )
@@ -27,11 +25,11 @@ var (
 // When the request is for the IAM path, it looks up the IAM role in the
 // container store and fetches those credentials. Otherwise, it acts as a
 // reverse proxy for the real API.
-func NewIAMHandler(upstream *url.URL, containerStore docker.ContainerStore, credentialStore iam.CredentialStore) http.Handler {
+func NewIAMHandler(upstream http.Handler, containerStore docker.ContainerStore, credentialStore iam.CredentialStore) http.Handler {
 	return &httpHandler{
+		upstream:        upstream,
 		containerStore:  containerStore,
 		credentialStore: credentialStore,
-		reverseProxy:    httputil.NewSingleHostReverseProxy(upstream),
 	}
 }
 
@@ -45,7 +43,7 @@ func (handler *httpHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		handler.serveIAMRequest(writer, request, logger)
 	} else {
 		logger.Info("Serving reverse proxy request")
-		handler.reverseProxy.ServeHTTP(writer, request)
+		handler.upstream.ServeHTTP(writer, request)
 	}
 }
 
@@ -70,7 +68,7 @@ func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request 
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	response, err := json.Marshal(&credentialResponse{
+	response, err := json.Marshal(&CredentialResponse{
 		AccessKeyID:     *creds.AccessKeyId,
 		Code:            credentialCode,
 		Expiration:      *creds.Expiration,
@@ -96,18 +94,8 @@ func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request 
 	logger.Info("Successfully responded")
 }
 
-type credentialResponse struct {
-	AccessKeyID     string `json:"AccessKeyId"`
-	Code            string
-	Expiration      time.Time
-	LastUpdated     time.Time
-	SecretAccessKey string
-	Token           string
-	Type            string
-}
-
 type httpHandler struct {
+	upstream        http.Handler
 	containerStore  docker.ContainerStore
 	credentialStore iam.CredentialStore
-	reverseProxy    http.Handler
 }
