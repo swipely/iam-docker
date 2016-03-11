@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/swipely/iam-docker",
-	"GoVersion": "go1.4",
+	"GoVersion": "go1.6",
 	"Packages": [
 		"./..."
 	],
