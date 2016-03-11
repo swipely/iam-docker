@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"math/rand"
 	"sync"
 	"time"
 )
@@ -64,7 +65,14 @@ func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Dur
 		clog.Info("Credential is not in the store")
 	}
 
-	output, err := store.client.AssumeRole(&sts.AssumeRoleInput{RoleArn: &arn})
+	duration := int64(3600)
+	sessionName := generateSessionName()
+
+	output, err := store.client.AssumeRole(&sts.AssumeRoleInput{
+		RoleArn:         &arn,
+		DurationSeconds: &duration,
+		RoleSessionName: &sessionName,
+	})
 
 	if err != nil {
 		return nil, err
@@ -78,6 +86,15 @@ func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Dur
 	store.mutex.Unlock()
 
 	return output.Credentials, nil
+}
+
+func generateSessionName() string {
+	size := 16
+	ary := make([]byte, size)
+	for i := range ary {
+		ary[i] = byte((rand.Int() % 26) + 65)
+	}
+	return string(ary)
 }
 
 type credentialStore struct {
