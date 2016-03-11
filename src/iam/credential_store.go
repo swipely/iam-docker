@@ -40,10 +40,16 @@ func (store *credentialStore) RefreshCredentials() {
 
 	for _, arn := range arns {
 		_, err := store.refreshCredential(arn, refreshGracePeriod)
-		log.WithFields(logrus.Fields{
-			"role":  arn,
-			"error": err.Error(),
-		}).Warn("Unable to refresh credential")
+		if err != nil {
+			log.WithFields(logrus.Fields{
+				"role":  arn,
+				"error": err.Error(),
+			}).Warn("Unable to refresh credential")
+		} else {
+			log.WithFields(logrus.Fields{
+				"role": arn,
+			}).Info("Successfully refreshed credential")
+		}
 	}
 	log.Info("Done refreshing all IAM credentials")
 }
