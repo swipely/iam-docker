@@ -1,4 +1,5 @@
-FROM scratch
+FROM alpine:3.3
 MAINTAINER Tom Hulihan (hulihan.tom159@gmail.com)
+RUN apk --update add ca-certificates
 ADD ./dist/iam-docker /bin/iam-docker
-ENTRYPOINT ["/bin/iam-docker"]
+CMD ["/bin/iam-docker"]
