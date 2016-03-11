@@ -22,7 +22,8 @@ func (handler *eventHandler) Listen(channel <-chan *dockerClient.APIEvents) erro
 	var workers sync.WaitGroup
 
 	workers.Add(handler.workers)
-	for id := 1; id <= handler.workers; id++ {
+	for i := 1; i <= handler.workers; i++ {
+		id := i
 		go func() {
 			handler.work(id, channel)
 			workers.Done()

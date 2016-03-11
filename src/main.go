@@ -80,7 +80,7 @@ func main() {
 
 	go func() {
 		local := log.WithFields(logrus.Fields{"routine": "container-sync"})
-		for range time.Tick(time.Minute) {
+		for {
 			local.Info("Starting")
 			e := containerStore.SyncRunningContainers()
 			if e == nil {
@@ -90,6 +90,7 @@ func main() {
 					"error": e.Error(),
 				}).Error("Failed to sync containers")
 			}
+			time.Sleep(time.Minute)
 		}
 	}()
 
@@ -108,10 +109,11 @@ func main() {
 	go func() {
 		local := log.WithFields(logrus.Fields{"routine": "credential-refresher"})
 		time.Sleep(30 * time.Second)
-		for range time.Tick(time.Minute) {
+		for {
 			local.Info("Starting")
 			credentialStore.RefreshCredentials()
 			local.Info("Completed")
+			time.Sleep(time.Minute)
 		}
 	}()
 
