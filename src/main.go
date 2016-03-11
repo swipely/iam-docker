@@ -12,6 +12,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -20,8 +21,9 @@ var (
 )
 
 func main() {
-	stsClient := sts.New(session.New())
+	var wg sync.WaitGroup
 
+	stsClient := sts.New(session.New())
 	dockerClient, err := dockerLib.NewClientFromEnv()
 	if err != nil {
 		log.WithFields(logrus.Fields{
@@ -61,6 +63,8 @@ func main() {
 		}).Error("Unable to add docker event listener")
 		os.Exit(1)
 	}
+
+	wg.Add(1)
 
 	go func() {
 		local := log.WithFields(logrus.Fields{"routine": "event-handler"})
@@ -110,4 +114,6 @@ func main() {
 			local.Info("Completed")
 		}
 	}()
+
+	wg.Wait()
 }
