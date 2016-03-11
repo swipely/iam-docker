@@ -36,12 +36,42 @@
 			"Rev": "4151ef572710e04d25d9385114b33847ba6a923a"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/corehandlers",
+			"Comment": "v1.1.10",
+			"Rev": "4151ef572710e04d25d9385114b33847ba6a923a"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/aws/credentials",
 			"Comment": "v1.1.10",
 			"Rev": "4151ef572710e04d25d9385114b33847ba6a923a"
 		},
 		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds",
+			"Comment": "v1.1.10",
+			"Rev": "4151ef572710e04d25d9385114b33847ba6a923a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/defaults",
+			"Comment": "v1.1.10",
+			"Rev": "4151ef572710e04d25d9385114b33847ba6a923a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/ec2metadata",
+			"Comment": "v1.1.10",
+			"Rev": "4151ef572710e04d25d9385114b33847ba6a923a"
+		},
+		{
 			"ImportPath": "github.com/aws/aws-sdk-go/aws/request",
+			"Comment": "v1.1.10",
+			"Rev": "4151ef572710e04d25d9385114b33847ba6a923a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/aws/session",
+			"Comment": "v1.1.10",
+			"Rev": "4151ef572710e04d25d9385114b33847ba6a923a"
+		},
+		{
+			"ImportPath": "github.com/aws/aws-sdk-go/private/endpoints",
 			"Comment": "v1.1.10",
 			"Rev": "4151ef572710e04d25d9385114b33847ba6a923a"
 		},
