@@ -1,4 +1,4 @@
 FROM scratch
 MAINTAINER Tom Hulihan (hulihan.tom159@gmail.com)
 ADD ./dist/iam-docker /bin/iam-docker
-ENTRYPOINT /bin/iam-docker
+ENTRYPOINT ["/bin/iam-docker"]
