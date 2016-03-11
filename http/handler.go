@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	iamRegex = regexp.MustCompile("^/[^/]+/meta-data/iam/security-credentials/")
+	iamRegex = regexp.MustCompile("^/[^/]+/meta-data/iam/security-credentials")
 	log      = logrus.WithFields(logrus.Fields{"package": "http"})
 )
 
@@ -42,7 +42,7 @@ func (handler *httpHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		logger.Info("Serving IAM credentials request")
 		handler.serveIAMRequest(writer, request, logger)
 	} else {
-		logger.Info("Serving reverse proxy request")
+		logger.Info("Delegating request upstream")
 		handler.upstream.ServeHTTP(writer, request)
 	}
 }
@@ -74,8 +74,8 @@ func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request 
 		Expiration:      *creds.Expiration,
 		LastUpdated:     creds.Expiration.Add(-1 * time.Hour),
 		SecretAccessKey: *creds.SecretAccessKey,
-		Type:            credentialType,
 		Token:           *creds.SessionToken,
+		Type:            credentialType,
 	})
 	if err != nil {
 		logger.WithFields(logrus.Fields{
