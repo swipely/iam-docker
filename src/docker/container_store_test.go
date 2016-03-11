@@ -4,8 +4,8 @@ import (
 	dockerClient "github.com/fsouza/go-dockerclient"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/swipely/iam-docker/docker"
-	"github.com/swipely/iam-docker/mock"
+	. "github.com/swipely/iam-docker/src/docker"
+	"github.com/swipely/iam-docker/src/mock"
 	"sort"
 )
 

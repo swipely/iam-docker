@@ -3,8 +3,8 @@ package http
 import (
 	"encoding/json"
 	"github.com/Sirupsen/logrus"
-	"github.com/swipely/iam-docker/docker"
-	"github.com/swipely/iam-docker/iam"
+	"github.com/swipely/iam-docker/src/docker"
+	"github.com/swipely/iam-docker/src/iam"
 	"net/http"
 	"regexp"
 	"time"

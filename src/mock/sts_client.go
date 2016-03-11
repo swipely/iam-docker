@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
-// STSClient implements github.com/swipely/iam-docker/iam.STSClient.
+// STSClient implements github.com/swipely/iam-docker/src/iam.STSClient.
 type STSClient struct {
 	AssumableRoles map[string]*sts.Credentials
 }

@@ -4,8 +4,9 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 )
 
-// DockerClient implements the github.com/swipely/docker.RawClient interface.
-// To fake a running container, it must be added to the ContainersByID map.
+// DockerClient implements the
+// github.com/swipely/iam-docker/src/docker.RawClient interface. To fake a
+// running container, it must be added to the ContainersByID map.
 type DockerClient struct {
 	ContainersByID map[string]*docker.Container
 }

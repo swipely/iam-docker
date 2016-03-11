@@ -4,8 +4,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/swipely/iam-docker/iam"
-	"github.com/swipely/iam-docker/mock"
+	. "github.com/swipely/iam-docker/src/iam"
+	"github.com/swipely/iam-docker/src/mock"
 	"time"
 )
 

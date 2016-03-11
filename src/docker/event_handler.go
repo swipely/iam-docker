@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/Sirupsen/logrus"
 	dockerClient "github.com/fsouza/go-dockerclient"
-	iam "github.com/swipely/iam-docker/iam"
+	iam "github.com/swipely/iam-docker/src/iam"
 	"sync"
 )
 
