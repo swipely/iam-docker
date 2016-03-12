@@ -30,6 +30,9 @@ test:
 
 exe: $(EXE)
 
+get-deps:
+	go get -u github.com/tools/godep
+
 test-in-docker: docker-build
 	$(DOCKER) run $(DOCKER_BUILD_IMAGE) make test
 

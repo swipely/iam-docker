@@ -29,6 +29,7 @@ To build and test, you need to install [Go 1.6](https://golang.org/doc/go1.6) an
 All development commands can be found in the `Makefile`.
 Commonly used commands:
 
+* `make get-deps` - install the system dependencies
 * `make test` - run the application tests
 * `make docker` - build a release Docker image
 * `make test-in-docker` - run the tests in Docker
