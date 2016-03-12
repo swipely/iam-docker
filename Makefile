@@ -14,6 +14,7 @@ DOCKER_TAG=$(shell git rev-parse --quiet --short HEAD)
 DOCKER_BUILD_IMAGE=$(DOCKER_BUILD_IMAGE_NAME):$(DOCKER_TAG)
 DOCKER_BUILD_EXE=/go/src/github.com/swipely/iam-docker/dist/iam-docker
 DOCKER_IMAGE=$(DOCKER_IMAGE_NAME):$(DOCKER_TAG)
+RELEASE_DOCKERFILE=Dockerfile.build
 RELEASE_DOCKERFILE=Dockerfile.release
 
 default: test
@@ -30,7 +31,7 @@ clean:
 	rm -rf $(DIST)
 
 docker: clean
-	$(DOCKER) build -t $(DOCKER_BUILD_IMAGE) .
+	$(DOCKER) build -t $(DOCKER_BUILD_IMAGE) -f $(BUILD_DOCKERFILE) .
 	$(eval CONTAINER := $(shell $(DOCKER) create $(DOCKER_BUILD_IMAGE) /bin/sleep 100))
 	mkdir -p $(DIST)
 	$(DOCKER) cp $(CONTAINER):$(DOCKER_BUILD_EXE) $(EXE)
