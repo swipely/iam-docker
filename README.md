@@ -1,4 +1,4 @@
-# IAM Docker
+# IAM Docker [![Build Status](https://travis-ci.org/swipely/iam-docker.svg?branch=master)](https://travis-ci.org/swipely/iam-docker)
 
 This project allows Docker containers to use different EC2 instance roles.
 It's still pre-release, so expect the interface to change.
