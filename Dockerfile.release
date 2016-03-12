@@ -2,4 +2,5 @@ FROM alpine:3.3
 MAINTAINER Tom Hulihan (hulihan.tom159@gmail.com)
 RUN apk --update add ca-certificates
 ADD ./dist/iam-docker /bin/iam-docker
+ADD ./LICENSE /LICENSE
 CMD ["/bin/iam-docker"]
