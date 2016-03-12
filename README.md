@@ -24,6 +24,8 @@ All credentials are kept fresh, so there should be little latency when making AP
 
 ## Development
 
+To build and test, you need to install [Go 1.6](https://golang.org/doc/go1.6) and [`godep`](https://github.com/tools/godep): `go get -u github.com/tools/godep`.
+
 All development commands can be found in the `Makefile`.
 Commonly used commands:
 
