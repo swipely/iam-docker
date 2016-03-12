@@ -9,15 +9,18 @@ EXE_NAME=iam-docker
 EXE=$(DIST)/$(EXE_NAME)
 DOCKER=docker
 DOCKER_BUILD_IMAGE_NAME=iam-docker-build
-DOCKER_IMAGE_NAME=iam-docker
+DOCKER_RELEASE_IMAGE_NAME=iam-docker
 DOCKER_TAG=$(shell git rev-parse --quiet --short HEAD)
 DOCKER_BUILD_IMAGE=$(DOCKER_BUILD_IMAGE_NAME):$(DOCKER_TAG)
+DOCKER_RELEASE_IMAGE=$(DOCKER_RELEASE_IMAGE_NAME):$(DOCKER_TAG)
 DOCKER_BUILD_EXE=/go/src/github.com/swipely/iam-docker/dist/iam-docker
-DOCKER_IMAGE=$(DOCKER_IMAGE_NAME):$(DOCKER_TAG)
-RELEASE_DOCKERFILE=Dockerfile.build
+BUILD_DOCKERFILE=Dockerfile.build
 RELEASE_DOCKERFILE=Dockerfile.release
 
 default: test
+
+clean:
+	rm -rf $(DIST)
 
 build:
 	$(GO) build $(SRC)
@@ -27,16 +30,21 @@ test:
 
 exe: $(EXE)
 
-clean:
-	rm -rf $(DIST)
+test-in-docker: docker-build
+	$(DOCKER) run $(DOCKER_BUILD_IMAGE) make test
 
-docker: clean
-	$(DOCKER) build -t $(DOCKER_BUILD_IMAGE) -f $(BUILD_DOCKERFILE) .
-	$(eval CONTAINER := $(shell $(DOCKER) create $(DOCKER_BUILD_IMAGE) /bin/sleep 100))
+docker: docker-build clean
+	$(eval CONTAINER := $(shell $(DOCKER) create $(DOCKER_BUILD_IMAGE) make exe))
+	$(DOCKER) start $(CONTAINER)
+	$(DOCKER) logs -f $(CONTAINER)
 	mkdir -p $(DIST)
 	$(DOCKER) cp $(CONTAINER):$(DOCKER_BUILD_EXE) $(EXE)
 	$(DOCKER) rm -f $(CONTAINER)
-	$(DOCKER) build -t $(DOCKER_IMAGE_NAME) -f $(RELEASE_DOCKERFILE) .
+	$(DOCKER) build -t $(DOCKER_RELEASE_IMAGE) -f $(RELEASE_DOCKERFILE) .
+	$(DOCKER) tag $(DOCKER_RELEASE_IMAGE) $(DOCKER_RELEASE_IMAGE_NAME):latest
+
+docker-build:
+	$(DOCKER) build -t $(DOCKER_BUILD_IMAGE) -f $(BUILD_DOCKERFILE) .
 
 $(EXE): clean $(DIST)
 	$(GO) build $(GO_BUILD_OPTS) -o $(EXE) $(MAIN)
@@ -44,4 +52,4 @@ $(EXE): clean $(DIST)
 $(DIST):
 	mkdir -p $(DIST)
 
-.PHONY: build clean default docker exe test
+.PHONY: build clean default docker docker-build exe test
