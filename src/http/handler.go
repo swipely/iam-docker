@@ -7,6 +7,7 @@ import (
 	"github.com/swipely/iam-docker/src/iam"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -48,9 +49,10 @@ func (handler *httpHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 }
 
 func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request *http.Request, logger *logrus.Entry) {
-	logger = logger.WithFields(logrus.Fields{"remoteAddr": request.RemoteAddr})
+	address := strings.Split(request.RemoteAddr, ":")[0]
+	logger = logger.WithFields(logrus.Fields{"remoteAddr": address})
 	logger.Debug("Fetching IAM role")
-	role, err := handler.containerStore.IAMRoleForIP(request.RemoteAddr)
+	role, err := handler.containerStore.IAMRoleForIP(address)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
