@@ -55,4 +55,4 @@ $(EXE): clean $(DIST)
 $(DIST):
 	mkdir -p $(DIST)
 
-.PHONY: build clean default docker docker-build exe test
+.PHONY: build clean default docker docker-build exe get-deps test test-in-docker
