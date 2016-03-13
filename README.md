@@ -10,7 +10,7 @@ It's still pre-release, so expect the interface to change.
 * Run the Docker image: `docker run --volume /var/run/docker.sock:/var/run/docker.sock --volume /etc/ssl/certs/:/etc/ssl/certs/ iam-docker:latest`
 * Determine the gateway for the Docker network you'd like to proxy (default is bridge): `docker network inspect $network | grep Gateway | cut -d '"' -f 4`
 * Forward requests from the Docker bridge going to the metadata api to the proxy: `iptables -t nat -I PREROUTING -p tcp -d 169.254.169.254 --dport 80 -j DNAT --to-destination $gateway:8080 -i $network`
-* When starting containers, set an `IAM_ROLE` environment variable: `docker run -it -e IAM_PROFILE=arn:aws:iam::1234123412:role/some-role $image`
+* When starting containers, set an `IAM_PROFILE` environment variable: `docker run -it -e IAM_PROFILE=arn:aws:iam::1234123412:role/some-role $image`
 
 ## How it works
 
