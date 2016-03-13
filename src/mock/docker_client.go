@@ -18,6 +18,11 @@ func NewDockerClient() *DockerClient {
 	}
 }
 
+// AddEventListener is a no-op.
+func (mock *DockerClient) AddEventListener(chan<- docker.APIEvents) error {
+	return nil
+}
+
 // InspectContainer looks up a container by its ID.
 func (mock *DockerClient) InspectContainer(id string) (*docker.Container, error) {
 	container, hasKey := mock.ContainersByID[id]

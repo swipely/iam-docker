@@ -30,6 +30,7 @@ type EventHandler interface {
 // RawClient specifies the subset of commands that EventHandlers use from the
 // go-dockerclient.
 type RawClient interface {
+	AddEventListener(chan<- *dockerClient.APIEvents) error
 	InspectContainer(id string) (*dockerClient.Container, error)
 	ListContainers(opts dockerClient.ListContainersOptions) ([]dockerClient.APIContainers, error)
 }
