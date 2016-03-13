@@ -19,7 +19,7 @@ func NewDockerClient() *DockerClient {
 }
 
 // AddEventListener is a no-op.
-func (mock *DockerClient) AddEventListener(chan<- docker.APIEvents) error {
+func (mock *DockerClient) AddEventListener(chan<- *docker.APIEvents) error {
 	return nil
 }
 
