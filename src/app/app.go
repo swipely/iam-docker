@@ -6,6 +6,7 @@ import (
 	"github.com/swipely/iam-docker/src/docker"
 	"github.com/swipely/iam-docker/src/http"
 	"github.com/swipely/iam-docker/src/iam"
+	stdLog "log"
 	netHTTP "net/http"
 	"net/http/httputil"
 	"time"
@@ -61,19 +62,21 @@ func (app *App) refreshCredentialWorker(credentialStore iam.CredentialStore) {
 
 func (app *App) httpWorker(handler netHTTP.Handler) {
 	wlog := log.WithFields(logrus.Fields{"worker": "http"})
+	writer := wlog.Logger.Writer()
 	server := netHTTP.Server{
 		Addr:           app.Config.ListenAddr,
 		Handler:        handler,
 		ReadTimeout:    app.Config.ReadTimeout,
 		WriteTimeout:   app.Config.WriteTimeout,
 		MaxHeaderBytes: 1 << 20,
+		ErrorLog:       stdLog.New(writer, "", 0),
 	}
-
 	wlog.Info("Starting")
 	err := server.ListenAndServe()
 	wlog.WithFields(logrus.Fields{
 		"error": err.Error(),
 	}).Error("Failed to serve HTTP")
+	_ = writer.Close()
 	app.ErrorChan <- err
 }
 
