@@ -9,7 +9,7 @@ Pull and run the image:
 
 ```bash
 $ docker pull swipely/iam-docker:latest
-$ docker run --volume /var/run/docker.sock:/var/run/docker.sock --restart=always iam-docker:latest
+$ docker run --volume /var/run/docker.sock:/var/run/docker.sock --restart=always swipely/iam-docker:latest
 ```
 
 Determine the gateway IP and network interface of the Docker network you'd like to proxy (default is `bridge`).
