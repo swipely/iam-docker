@@ -5,7 +5,11 @@ You can pull release images from [Docker Hub](https://hub.docker.com/r/swipely/i
 
 ## Usage
 
-Pull and run the image:
+Setup an root IAM role that can perform [`sts:assume-role`](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html) on the roles you'd like to assume.
+Also ensure that the assumed roles have a Trust Relationship which allows them to be assumed by the root role.
+See this [StackOverflow post](http://stackoverflow.com/a/33850060) for more details.
+
+Start an EC2 instance with that role, then pull and run the image:
 
 ```bash
 $ docker pull swipely/iam-docker:latest
