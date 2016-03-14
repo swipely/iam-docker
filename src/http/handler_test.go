@@ -75,7 +75,7 @@ var _ = Describe("Handler", func() {
 				)
 
 				JustBeforeEach(func() {
-					dockerClient.ContainersByID[containerID] = &dockerlib.Container{
+					_ = dockerClient.AddContainer(&dockerlib.Container{
 						ID: containerID,
 						Config: &dockerlib.Config{
 							Env: []string{"IAM_PROFILE=" + iamRole},
@@ -83,7 +83,7 @@ var _ = Describe("Handler", func() {
 						NetworkSettings: &dockerlib.NetworkSettings{
 							IPAddress: ip,
 						},
-					}
+					})
 					err := containerStore.AddContainerByID(containerID)
 					Expect(err).To(BeNil())
 				})
