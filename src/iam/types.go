@@ -2,7 +2,7 @@ package iam
 
 import (
 	"github.com/Sirupsen/logrus"
-	sts "github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go/service/sts"
 )
 
 var (

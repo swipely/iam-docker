@@ -51,7 +51,7 @@ var _ = Describe("Handler", func() {
 
 			JustBeforeEach(func() {
 				var err error
-				path = "/latest/meta-data/iam/security-credentials/"
+				path = "/latest/meta-data/iam/security-credentials/test-iam-role"
 				url, err = neturl.ParseRequestURI(path)
 				Expect(err).To(BeNil())
 				request = &http.Request{
@@ -71,7 +71,7 @@ var _ = Describe("Handler", func() {
 			Context("When the ContainerStore can find that container", func() {
 				const (
 					containerID = "DEADBEEF"
-					iamRole     = "test-iam-role"
+					iamRole     = "arn:aws::iam::1234123412:role/test-iam-role"
 				)
 
 				JustBeforeEach(func() {
@@ -125,6 +125,70 @@ var _ = Describe("Handler", func() {
 						Expect(response.SecretAccessKey).To(Equal(secretAccessKey))
 						Expect(response.Token).To(Equal(sessionToken))
 						Expect(response.Type).To(Equal("AWS-HMAC"))
+					})
+				})
+			})
+		})
+		Context("When the request is for the list IAM path", func() {
+			const (
+				ip = "172.17.81.3"
+			)
+
+			JustBeforeEach(func() {
+				var err error
+				path = "/latest/meta-data/iam/security-credentials/"
+				url, err = neturl.ParseRequestURI(path)
+				Expect(err).To(BeNil())
+				request = &http.Request{
+					Method:     "GET",
+					RemoteAddr: ip,
+					URL:        url,
+				}
+			})
+
+			Context("When the ContainerStore cannot find that container", func() {
+				It("Returns 'Not Found'", func() {
+					subject.ServeHTTP(writer, request)
+					Expect(writer.Code).To(Equal(404))
+				})
+			})
+
+			Context("When the ContainerStore can find that container", func() {
+				const (
+					containerID = "CA55E77E"
+					iamRole     = "arn:aws::iam::1234123412:role/other-iam-role"
+				)
+
+				JustBeforeEach(func() {
+					_ = dockerClient.AddContainer(&dockerlib.Container{
+						ID: containerID,
+						Config: &dockerlib.Config{
+							Env: []string{"IAM_PROFILE=" + iamRole},
+						},
+						NetworkSettings: &dockerlib.NetworkSettings{
+							IPAddress: ip,
+						},
+					})
+					err := containerStore.AddContainerByID(containerID)
+					Expect(err).To(BeNil())
+				})
+
+				Context("When the CredentialStore cannot find the role", func() {
+					It("Returns 'Internal Server Error'", func() {
+						subject.ServeHTTP(writer, request)
+						Expect(writer.Code).To(Equal(500))
+					})
+				})
+
+				Context("When the CredentialStore can find that role", func() {
+					JustBeforeEach(func() {
+						stsClient.AssumableRoles[iamRole] = &sts.Credentials{}
+					})
+
+					It("Returns the role name", func() {
+						subject.ServeHTTP(writer, request)
+						Expect(writer.Code).To(Equal(200))
+						Expect(string(writer.Body.Bytes())).To(Equal("other-iam-role\n"))
 					})
 				})
 			})
