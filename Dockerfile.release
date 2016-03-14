@@ -1,5 +1,6 @@
 FROM scratch
 MAINTAINER Tom Hulihan (hulihan.tom159@gmail.com)
-ADD ./dist/iam-docker /iam-docker
-ADD ./LICENSE /LICENSE
+ADD ./LICENSE /
+ADD ./dist/iam-docker /
+ADD ./dist/ca-certificates.crt /etc/ssl/certs/
 CMD ["/iam-docker"]

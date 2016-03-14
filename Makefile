@@ -7,6 +7,8 @@ TEST_OPTS=-v
 DIST=./dist
 EXE_NAME=iam-docker
 EXE=$(DIST)/$(EXE_NAME)
+CACERT=$(DIST)/ca-certificates.crt
+CACERT_SRC=https://curl.haxx.se/ca/cacert.pem
 DOCKER=docker
 DOCKER_BUILD_IMAGE_NAME=iam-docker-build
 DOCKER_RELEASE_IMAGE_NAME=iam-docker
@@ -36,7 +38,7 @@ get-deps:
 test-in-docker: docker-build
 	$(DOCKER) run $(DOCKER_BUILD_IMAGE) make test
 
-docker: docker-build clean
+docker: docker-build $(CACERT)
 	$(eval CONTAINER := $(shell $(DOCKER) create $(DOCKER_BUILD_IMAGE) make exe))
 	$(DOCKER) start $(CONTAINER)
 	$(DOCKER) logs -f $(CONTAINER)
@@ -49,7 +51,11 @@ docker: docker-build clean
 docker-build:
 	$(DOCKER) build -t $(DOCKER_BUILD_IMAGE) -f $(BUILD_DOCKERFILE) .
 
-$(EXE): clean $(DIST)
+$(CACERT): $(DIST)
+	curl -s $(CACERT_SRC) > $(CACERT)
+
+$(EXE): $(DIST)
+	rm -f $(EXE)
 	$(GO) build $(GO_BUILD_OPTS) -o $(EXE) $(MAIN)
 
 $(DIST):
