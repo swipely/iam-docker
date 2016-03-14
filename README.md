@@ -12,13 +12,13 @@ $ docker pull swipely/iam-docker:latest
 $ docker run --volume /var/run/docker.sock:/var/run/docker.sock --restart=always iam-docker:latest
 ```
 
-Determine the gateway IP and network interfa of the Docker network you'd like to proxy (default is `bridge`).
+Determine the gateway IP and network interface of the Docker network you'd like to proxy (default is `bridge`).
 Note that this can be done for an arbitrary number of networks.
 
 ```bash
 $ export NETWORK="bridge"
-$ export GATEWAY="$(docker network inspect $NETWORK | grep Gateway | cut -d '"' -f 4)"
-$ export INTERFACE="br-$(docker network inspect test | grep Id | cut -d '"' -f 4 | head -c 12)"
+$ export GATEWAY="$(docker network inspect "$NETWORK" | grep Gateway | cut -d '"' -f 4)"
+$ export INTERFACE="br-$(docker network inspect "$NETWORK" | grep Id | cut -d '"' -f 4 | head -c 12)"
 ```
 
 Forward requests coming from your Docker network(s) to the running agent:
