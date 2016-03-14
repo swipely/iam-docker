@@ -46,7 +46,7 @@ func (mock *DockerClient) AddContainer(container *docker.Container) error {
 // RemoveContainer removes the container and fires off event listeners.
 func (mock *DockerClient) RemoveContainer(id string) error {
 	_, hasKey := mock.containersByID[id]
-	if hasKey {
+	if !hasKey {
 		return &docker.NoSuchContainer{ID: id}
 	}
 
@@ -81,10 +81,7 @@ func (mock *DockerClient) ListContainers(opts docker.ListContainersOptions) ([]d
 }
 
 func (mock *DockerClient) triggerListeners(event *docker.APIEvents) {
-	for i := range mock.eventListeners {
-		eventListener := mock.eventListeners[i]
-		go func() {
-			eventListener <- event
-		}()
+	for _, eventListener := range mock.eventListeners {
+		eventListener <- event
 	}
 }
