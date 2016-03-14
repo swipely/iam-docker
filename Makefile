@@ -15,6 +15,7 @@ DOCKER_RELEASE_IMAGE_NAME=swipely/iam-docker
 DOCKER_TAG=$(shell git rev-parse --quiet --short HEAD)
 DOCKER_BUILD_IMAGE=$(DOCKER_BUILD_IMAGE_NAME):$(DOCKER_TAG)
 DOCKER_RELEASE_IMAGE=$(DOCKER_RELEASE_IMAGE_NAME):$(DOCKER_TAG)
+DOCKER_RELEASE_IMAGE_LATEST=$(DOCKER_RELEASE_IMAGE_NAME):latest
 DOCKER_BUILD_EXE=/go/src/github.com/swipely/iam-docker/dist/iam-docker
 BUILD_DOCKERFILE=Dockerfile.build
 RELEASE_DOCKERFILE=Dockerfile.release
@@ -38,6 +39,10 @@ get-deps:
 test-in-docker: docker-build
 	$(DOCKER) run $(DOCKER_BUILD_IMAGE) make test
 
+release: docker
+	docker push $(DOCKER_RELEASE_IMAGE)
+	docker push $(DOCKER_RELEASE_IMAGE_LATEST)
+
 docker: docker-build $(CACERT)
 	$(eval CONTAINER := $(shell $(DOCKER) create $(DOCKER_BUILD_IMAGE) make exe))
 	$(DOCKER) start $(CONTAINER)
@@ -46,7 +51,7 @@ docker: docker-build $(CACERT)
 	$(DOCKER) cp $(CONTAINER):$(DOCKER_BUILD_EXE) $(EXE)
 	$(DOCKER) rm -f $(CONTAINER)
 	$(DOCKER) build -t $(DOCKER_RELEASE_IMAGE) -f $(RELEASE_DOCKERFILE) .
-	$(DOCKER) tag $(DOCKER_RELEASE_IMAGE) $(DOCKER_RELEASE_IMAGE_NAME):latest
+	$(DOCKER) tag $(DOCKER_RELEASE_IMAGE) $(DOCKER_RELEASE_IMAGE_LATEST)
 
 docker-build:
 	$(DOCKER) build -t $(DOCKER_BUILD_IMAGE) -f $(BUILD_DOCKERFILE) .
@@ -61,4 +66,4 @@ $(EXE): $(DIST)
 $(DIST):
 	mkdir -p $(DIST)
 
-.PHONY: build clean default docker docker-build exe get-deps test test-in-docker
+.PHONY: build clean default docker docker-build exe get-deps release test test-in-docker
