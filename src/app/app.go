@@ -39,11 +39,18 @@ func (app *App) Run() {
 }
 
 func (app *App) containerSyncWorker(containerStore docker.ContainerStore) {
-	timer := time.Tick(app.Config.DockerSyncPeriod)
 	wlog := log.WithFields(logrus.Fields{"worker": "sync-containers"})
 	wlog.Info("Starting")
 
 	go app.syncRunningContainers(containerStore, wlog)
+
+	// Don't sync every minute since we're already listening to Docker events.
+	// This is the default.
+	if app.Config.DockerSyncPeriod == (0 * time.Second) {
+		return
+	}
+
+	timer := time.Tick(app.Config.DockerSyncPeriod)
 	for range timer {
 		go app.syncRunningContainers(containerStore, wlog)
 	}
