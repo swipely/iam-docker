@@ -54,7 +54,7 @@ docker: docker-build $(CACERT)
 	$(DOCKER) build -t $(DOCKER_RELEASE_IMAGE) -f $(RELEASE_DOCKERFILE) .
 	$(DOCKER) tag $(DOCKER_RELEASE_IMAGE) $(DOCKER_RELEASE_IMAGE_LATEST)
 
-docker-build:
+docker-build: $(SRCS)
 	$(DOCKER) build -t $(DOCKER_BUILD_IMAGE) -f $(BUILD_DOCKERFILE) .
 
 $(CACERT): $(DIST)
