@@ -2,6 +2,7 @@ GO=CGO_ENABLED=0 godep go
 GO_BUILD_OPTS=-a --tags netgo --ldflags '-extldflags "-static"'
 SRCDIR=./src
 SRC=$(SRCDIR)/...
+SRCS=$(SRCDIR)/**/*.go
 MAIN=$(SRCDIR)/main.go
 TEST_OPTS=-v
 DIST=./dist
@@ -59,8 +60,7 @@ docker-build:
 $(CACERT): $(DIST)
 	curl -s $(CACERT_SRC) > $(CACERT)
 
-$(EXE): $(DIST)
-	rm -f $(EXE)
+$(EXE): $(DIST) $(SRCS)
 	$(GO) build $(GO_BUILD_OPTS) -o $(EXE) $(MAIN)
 
 $(DIST):
