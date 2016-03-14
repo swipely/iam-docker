@@ -111,7 +111,7 @@ func (handler *httpHandler) serveListCredentialsRequest(writer http.ResponseWrit
 	}
 	split := strings.Split(*role, "/")
 	prettyName := split[len(split)-1]
-	_, err := writer.Write([]byte(prettyName + "\n"))
+	_, err := writer.Write([]byte(prettyName))
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),

@@ -188,7 +188,7 @@ var _ = Describe("Handler", func() {
 					It("Returns the role name", func() {
 						subject.ServeHTTP(writer, request)
 						Expect(writer.Code).To(Equal(200))
-						Expect(string(writer.Body.Bytes())).To(Equal("other-iam-role\n"))
+						Expect(string(writer.Body.Bytes())).To(Equal("other-iam-role"))
 					})
 				})
 			})
