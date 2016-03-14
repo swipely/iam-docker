@@ -18,7 +18,7 @@ var (
 	listenAddr              = flag.String("listen-addr", ":8080", "Address on which the HTTP server should listen")
 	readTimeout             = flag.Duration("read-timeout", time.Minute, "Read timeout of the HTTP server")
 	writeTimeout            = flag.Duration("write-timeout", time.Minute, "Write timeout of the HTTP server")
-	metadata                = flag.String("metadata-api", "http://169.254.169.254:80", "Address of the EC2 MetaData API")
+	metadata                = flag.String("meta-data-api", "http://169.254.169.254:80", "Address of the EC2 MetaData API")
 	eventHandlers           = flag.Int("event-handlers", 4, "Number of workers listening to the Docker Events channel")
 	dockerSyncPeriod        = flag.Duration("docker-sync-period", time.Minute, "Frequency of Docker Container sync")
 	credentialRefreshPeriod = flag.Duration("credential-refresh-period", time.Minute, "Frequency of the IAM credential sync")
