@@ -32,17 +32,17 @@ func (app *App) Run() {
 	proxy := httputil.NewSingleHostReverseProxy(app.Config.MetaDataUpstream)
 	handler := http.NewIAMHandler(proxy, containerStore, credentialStore)
 
-	go app.containerSyncWorker(containerStore)
+	go app.containerSyncWorker(containerStore, credentialStore)
 	go app.refreshCredentialWorker(credentialStore)
 	go app.httpWorker(handler)
 	go app.eventWorker(eventHandler)
 }
 
-func (app *App) containerSyncWorker(containerStore docker.ContainerStore) {
+func (app *App) containerSyncWorker(containerStore docker.ContainerStore, credentialStore iam.CredentialStore) {
 	wlog := log.WithFields(logrus.Fields{"worker": "sync-containers"})
 	wlog.Info("Starting")
 
-	go app.syncRunningContainers(containerStore, wlog)
+	go app.syncRunningContainers(containerStore, credentialStore, wlog)
 
 	// Don't sync every minute since we're already listening to Docker events.
 	// This is the default.
@@ -52,7 +52,7 @@ func (app *App) containerSyncWorker(containerStore docker.ContainerStore) {
 
 	timer := time.Tick(app.Config.DockerSyncPeriod)
 	for range timer {
-		go app.syncRunningContainers(containerStore, wlog)
+		go app.syncRunningContainers(containerStore, credentialStore, wlog)
 	}
 }
 
@@ -112,12 +112,25 @@ func (app *App) eventWorker(eventHandler docker.EventHandler) {
 	}
 }
 
-func (app *App) syncRunningContainers(containerStore docker.ContainerStore, logger *logrus.Entry) {
+func (app *App) syncRunningContainers(containerStore docker.ContainerStore, credentialStore iam.CredentialStore, logger *logrus.Entry) {
 	logger.Debug("Syncing containers")
 	err := containerStore.SyncRunningContainers()
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"error": err.Error(),
 		}).Warn("Failed syncing running containers")
+	}
+	for _, arn := range containerStore.IAMRoles() {
+		_, err := credentialStore.CredentialsForRole(arn)
+		if err != nil {
+			logger.WithFields(logrus.Fields{
+				"arn":   arn,
+				"error": err.Error(),
+			}).Warn("Unable to fetch credential")
+		} else {
+			logger.WithFields(logrus.Fields{
+				"arn": arn,
+			}).Warn("Successfully fetch credential")
+		}
 	}
 }
