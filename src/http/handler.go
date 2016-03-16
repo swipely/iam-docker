@@ -56,10 +56,10 @@ func (handler *httpHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 }
 
 func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request *http.Request, logger *logrus.Entry) {
-	role, creds, code := handler.credentialsForAddress(request.RemoteAddr, logger)
-	if code != nil {
-		logger.WithField("code", *code).Warn("Unable to find credentials")
-		writer.WriteHeader(*code)
+	role, creds, err := handler.credentialsForAddress(request.RemoteAddr, logger)
+	if err != nil {
+		logger.WithField("error", err.Error()).Warn("Unable to find credentials")
+		writer.WriteHeader(http.StatusNotFound)
 		return
 	}
 	splitPath := strings.Split(request.URL.Path, "/")
@@ -95,15 +95,15 @@ func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request 
 }
 
 func (handler *httpHandler) serveListCredentialsRequest(writer http.ResponseWriter, request *http.Request, logger *logrus.Entry) {
-	role, _, code := handler.credentialsForAddress(request.RemoteAddr, logger)
-	if code != nil {
-		logger.WithField("code", *code).Warn("Unable to find credentials")
-		writer.WriteHeader(*code)
+	role, _, err := handler.credentialsForAddress(request.RemoteAddr, logger)
+	if err != nil {
+		logger.WithField("error", err.Error()).Warn("Unable to find credentials")
+		writer.WriteHeader(http.StatusNotFound)
 		return
 	}
 	split := strings.Split(*role, "/")
 	prettyName := split[len(split)-1]
-	_, err := writer.Write([]byte(prettyName))
+	_, err = writer.Write([]byte(prettyName))
 	if err != nil {
 		logger.WithField("error", err.Error()).Warn("Unable to write response")
 		return
@@ -111,27 +111,18 @@ func (handler *httpHandler) serveListCredentialsRequest(writer http.ResponseWrit
 	logger.Info("Successfully responded")
 }
 
-func (handler *httpHandler) credentialsForAddress(address string, logger *logrus.Entry) (*string, *sts.Credentials, *int) {
+func (handler *httpHandler) credentialsForAddress(address string, logger *logrus.Entry) (*string, *sts.Credentials, error) {
 	ip := strings.Split(address, ":")[0]
-	response := 0
 	logger.Debug("Fetching IAM role")
 	role, err := handler.containerStore.IAMRoleForIP(ip)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Warn("Unable to find IAM role")
-		response = http.StatusNotFound
-		return nil, nil, &response
+		return nil, nil, err
 	}
 	logger = logger.WithFields(logrus.Fields{"role": role})
 	logger.Debug("Fetching credentials")
 	creds, err := handler.credentialStore.CredentialsForRole(role)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Warn("Unable to fetch credentials")
-		response = http.StatusInternalServerError
-		return nil, nil, &response
+		return nil, nil, err
 	}
 	return &role, creds, nil
 }

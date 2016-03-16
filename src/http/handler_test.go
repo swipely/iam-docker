@@ -89,9 +89,9 @@ var _ = Describe("Handler", func() {
 				})
 
 				Context("When the CredentialStore cannot find the role", func() {
-					It("Returns 'Internal Server Error'", func() {
+					It("Returns 'Not Found'", func() {
 						subject.ServeHTTP(writer, request)
-						Expect(writer.Code).To(Equal(500))
+						Expect(writer.Code).To(Equal(404))
 					})
 				})
 
@@ -174,9 +174,9 @@ var _ = Describe("Handler", func() {
 				})
 
 				Context("When the CredentialStore cannot find the role", func() {
-					It("Returns 'Internal Server Error'", func() {
+					It("Returns 'Not Found'", func() {
 						subject.ServeHTTP(writer, request)
-						Expect(writer.Code).To(Equal(500))
+						Expect(writer.Code).To(Equal(404))
 					})
 				})
 
