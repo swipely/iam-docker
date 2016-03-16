@@ -3,6 +3,8 @@
 This project allows Docker containers to use different EC2 instance roles.
 You can pull release images from [Docker Hub](https://hub.docker.com/r/swipely/iam-docker/).
 
+[![Example gif](https://s3.amazonaws.com/swipely-pub/public-images/iam-docker.gif)]
+
 ## Motivation
 
 When running applications in EC2, [IAM roles](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html) may only be assigned at the instance level.
