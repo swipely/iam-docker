@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/swipely/iam-docker/src/app"
-	prefix "github.com/x-cray/logrus-prefixed-formatter"
+	iamLog "github.com/swipely/iam-docker/src/log"
 	"net/url"
 	"os"
 	"time"
@@ -33,7 +33,7 @@ func main() {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
 	logrus.SetOutput(os.Stdout)
-	logrus.SetFormatter(&prefix.TextFormatter{ForceColors: true})
+	logrus.SetFormatter(&iamLog.Formatter{})
 
 	log := logrus.WithFields(logrus.Fields{"prefix": "main"})
 

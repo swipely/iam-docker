@@ -193,10 +193,6 @@
 			"Rev": "0b12d6b521d83fc7f755e7cfc1b1fbdd35a01a74"
 		},
 		{
-			"ImportPath": "github.com/mgutz/ansi",
-			"Rev": "c286dcecd19ff979eeb73ea444e479b903f2cfcb"
-		},
-		{
 			"ImportPath": "github.com/onsi/ginkgo",
 			"Comment": "v1.2.0-11-gd94e2f4",
 			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
@@ -325,10 +321,6 @@
 			"ImportPath": "github.com/onsi/gomega/types",
 			"Comment": "v1.0-52-ga2ab864",
 			"Rev": "a2ab8644e0b6a33df2cbe44673bd0f6ebba9abc3"
-		},
-		{
-			"ImportPath": "github.com/x-cray/logrus-prefixed-formatter",
-			"Rev": "19bfe61502ba35a3235b4970c10b9366a0aa9b61"
 		}
 	]
 }
