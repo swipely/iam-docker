@@ -3,7 +3,7 @@
 This project allows Docker containers to use different EC2 instance roles.
 You can pull release images from [Docker Hub](https://hub.docker.com/r/swipely/iam-docker/).
 
-[![Example gif](https://s3.amazonaws.com/swipely-pub/public-images/iam-docker.gif)]
+[![Example gif]](https://s3.amazonaws.com/swipely-pub/public-images/iam-docker.gif)
 
 ## Motivation
 
