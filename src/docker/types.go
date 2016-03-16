@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	log = logrus.WithFields(logrus.Fields{"package": "docker"})
+	log = logrus.WithField("prefix", "docker")
 )
 
 // ContainerStore exposes methods to handle container lifecycle events.

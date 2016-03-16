@@ -7,14 +7,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/swipely/iam-docker/src/app"
+	prefix "github.com/x-cray/logrus-prefixed-formatter"
 	"net/url"
 	"os"
 	"time"
 )
 
 var (
-	log = logrus.WithFields(logrus.Fields{"package": "main"})
-
 	listenAddr              = flag.String("listen-addr", ":8080", "Address on which the HTTP server should listen")
 	readTimeout             = flag.Duration("read-timeout", time.Minute, "Read timeout of the HTTP server")
 	writeTimeout            = flag.Duration("write-timeout", time.Minute, "Write timeout of the HTTP server")
@@ -22,15 +21,25 @@ var (
 	eventHandlers           = flag.Int("event-handlers", 4, "Number of workers listening to the Docker Events channel")
 	dockerSyncPeriod        = flag.Duration("docker-sync-period", 0*time.Second, "Frequency of Docker Container sync; default is never")
 	credentialRefreshPeriod = flag.Duration("credential-refresh-period", time.Minute, "Frequency of the IAM credential sync")
+	verbose                 = flag.Bool("verbose", false, "Enable verbose logging")
 )
 
 func main() {
 	flag.Parse()
+
+	if *verbose {
+		logrus.SetLevel(logrus.DebugLevel)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+	logrus.SetOutput(os.Stdout)
+	logrus.SetFormatter(&prefix.TextFormatter{ForceColors: true})
+
+	log := logrus.WithFields(logrus.Fields{"prefix": "main"})
+
 	metaDataUpstream, err := url.Parse(*metadata)
 	if err != nil {
-		log.WithFields(logrus.Fields{
-			"url": *metadata,
-		}).Error("Invalid EC2 MetaData API URL")
+		log.WithField("url", *metadata).Error("Invalid EC2 MetaData API URL")
 		os.Exit(1)
 	}
 
@@ -45,9 +54,7 @@ func main() {
 	}
 	dockerClient, err := docker.NewClientFromEnv()
 	if err != nil {
-		log.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Error("Unable to create Docker client from environment, please set DOCKER_HOST")
+		log.WithField("error", err.Error()).Error("Unable to create Docker client from environment, please set DOCKER_HOST")
 		os.Exit(1)
 	}
 	stsClient := sts.New(session.New())
@@ -57,8 +64,6 @@ func main() {
 	inst.Run()
 
 	err = <-errChan
-	log.WithFields(logrus.Fields{
-		"error": err.Error(),
-	}).Error("Fatal error, exiting")
+	log.WithField("error", err.Error()).Error("Fatal error, exiting")
 	os.Exit(1)
 }

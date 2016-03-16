@@ -21,7 +21,7 @@ const (
 var (
 	iamRegex  = regexp.MustCompile("^/[^/]+/meta-data/iam/security-credentials/[^/]+$")
 	listRegex = regexp.MustCompile("^/[^/]+/meta-data/iam/security-credentials/?$")
-	log       = logrus.WithFields(logrus.Fields{"package": "http"})
+	log       = logrus.WithField("prefix", "http")
 )
 
 // NewIAMHandler creates a http.Handler which responds to metadata API requests.
@@ -50,7 +50,7 @@ func (handler *httpHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		logger.Info("Serving list IAM credentials request")
 		handler.serveListCredentialsRequest(writer, request, logger)
 	} else {
-		logger.Info("Delegating request upstream")
+		logger.Debug("Delegating request upstream")
 		handler.upstream.ServeHTTP(writer, request)
 	}
 }
@@ -58,9 +58,7 @@ func (handler *httpHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request *http.Request, logger *logrus.Entry) {
 	role, creds, code := handler.credentialsForAddress(request.RemoteAddr, logger)
 	if code != nil {
-		logger.WithFields(logrus.Fields{
-			"code": *code,
-		}).Warn("Unable to find credentials")
+		logger.WithField("code", *code).Warn("Unable to find credentials")
 		writer.WriteHeader(*code)
 		return
 	}
@@ -84,17 +82,13 @@ func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request 
 		Type:            credentialType,
 	})
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Warn("Unable to serialize JSON")
+		logger.WithField("error", err.Error()).Warn("Unable to serialize JSON")
 		writer.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	_, err = writer.Write(response)
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Warn("Unable to write response")
+		logger.WithField("error", err.Error()).Warn("Unable to write response")
 		return
 	}
 	logger.Info("Successfully responded")
@@ -103,9 +97,7 @@ func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request 
 func (handler *httpHandler) serveListCredentialsRequest(writer http.ResponseWriter, request *http.Request, logger *logrus.Entry) {
 	role, _, code := handler.credentialsForAddress(request.RemoteAddr, logger)
 	if code != nil {
-		logger.WithFields(logrus.Fields{
-			"code": *code,
-		}).Warn("Unable to find credentials")
+		logger.WithField("code", *code).Warn("Unable to find credentials")
 		writer.WriteHeader(*code)
 		return
 	}
@@ -113,9 +105,7 @@ func (handler *httpHandler) serveListCredentialsRequest(writer http.ResponseWrit
 	prettyName := split[len(split)-1]
 	_, err := writer.Write([]byte(prettyName))
 	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-		}).Warn("Unable to write response")
+		logger.WithField("error", err.Error()).Warn("Unable to write response")
 		return
 	}
 	logger.Info("Successfully responded")

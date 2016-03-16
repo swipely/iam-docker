@@ -12,6 +12,10 @@ import (
 	"time"
 )
 
+var (
+	log = logrus.WithField("prefix", "app")
+)
+
 // New creates a new application with the given config.
 func New(config *Config, dockerClient docker.RawClient, stsClient iam.STSClient, errorChan chan<- error) *App {
 	return &App{
@@ -130,7 +134,7 @@ func (app *App) syncRunningContainers(containerStore docker.ContainerStore, cred
 		} else {
 			logger.WithFields(logrus.Fields{
 				"arn": arn,
-			}).Warn("Successfully fetch credential")
+			}).Info("Successfully fetch credential")
 		}
 	}
 }

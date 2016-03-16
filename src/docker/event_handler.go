@@ -35,8 +35,8 @@ func (handler *eventHandler) Listen(channel <-chan *dockerClient.APIEvents) erro
 }
 
 func (handler *eventHandler) work(workerID int, channel <-chan *dockerClient.APIEvents) {
-	wlog := log.WithFields(logrus.Fields{"worker": workerID})
-	wlog.Info("Starting worker")
+	wlog := log.WithField("event-handler", workerID)
+	wlog.Info("Starting event handler")
 	for event := range channel {
 		if (event.Status != "start") && (event.Status != "die") {
 			continue
@@ -45,36 +45,32 @@ func (handler *eventHandler) work(workerID int, channel <-chan *dockerClient.API
 			"id":    event.ID,
 			"event": event.Status,
 		})
-		elog.Info("Handling event")
+		elog.Debug("Handling event")
 		if event.Status == "start" {
+			elog.Info("Adding container")
 			err := handler.containerStore.AddContainerByID(event.ID)
 			if err != nil {
-				elog.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Warn("Unable to add container")
+				elog.WithField("error", err.Error()).Warn("Unable to add container")
 				continue
 			}
 			role, err := handler.containerStore.IAMRoleForID(event.ID)
 			if err != nil {
-				elog.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Warn("Unable to lookup IAM role")
+				elog.WithField("error", err.Error()).Warn("Unable to lookup IAM role")
 				continue
 			}
+			rlog := elog.WithFields(logrus.Fields{"role": role})
+			rlog.Info("Fetching credentials")
 			_, err = handler.credentialStore.CredentialsForRole(role)
-			elog = elog.WithFields(logrus.Fields{"role": role})
 			if err != nil {
-				elog.WithFields(logrus.Fields{
-					"error": err.Error(),
-				}).Warn("Unable fetch credentials")
+				rlog.WithField("error", err.Error()).Warn("Unable fetch credentials")
 				continue
 			}
-			elog.Info("Successfully fetched credentials")
 		} else {
+			elog.Info("Removing container")
 			handler.containerStore.RemoveContainer(event.ID)
 		}
 	}
-	wlog.Info("Work complete")
+	wlog.Warn("Docker events channel closed")
 }
 
 type eventHandler struct {

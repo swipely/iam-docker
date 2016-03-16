@@ -1,15 +1,10 @@
 package app
 
 import (
-	"github.com/Sirupsen/logrus"
 	"github.com/swipely/iam-docker/src/docker"
 	"github.com/swipely/iam-docker/src/iam"
 	"net/url"
 	"time"
-)
-
-var (
-	log = logrus.WithFields(logrus.Fields{"package": "app"})
 )
 
 // App holds the state of the application.

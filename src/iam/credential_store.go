@@ -14,6 +14,10 @@ const (
 	realTimeGracePeriod = time.Second * 10
 )
 
+var (
+	log = logrus.WithField("prefix", "iam")
+)
+
 // NewCredentialStore accepts an STSClient and creates a new cache for assumed
 // IAM credentials.
 func NewCredentialStore(client STSClient) CredentialStore {
@@ -28,7 +32,7 @@ func (store *credentialStore) CredentialsForRole(arn string) (*sts.Credentials, 
 }
 
 func (store *credentialStore) RefreshCredentials() {
-	log.Info("Refreshing all IAM credentials")
+	log.Debug("Refreshing all IAM credentials")
 	store.mutex.RLock()
 	arns := make([]string, len(store.creds))
 	count := 0
@@ -45,30 +49,26 @@ func (store *credentialStore) RefreshCredentials() {
 				"role":  arn,
 				"error": err.Error(),
 			}).Warn("Unable to refresh credential")
-		} else {
-			log.WithFields(logrus.Fields{
-				"role": arn,
-			}).Info("Successfully refreshed credential")
 		}
 	}
-	log.Info("Done refreshing all IAM credentials")
+	log.Debug("Done refreshing all IAM credentials")
 }
 
 func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Duration) (*sts.Credentials, error) {
-	clog := log.WithFields(logrus.Fields{"arn": arn})
-	clog.Info("Checking for stale credential")
+	clog := log.WithField("arn", arn)
+	clog.Debug("Checking for stale credential")
 	store.mutex.RLock()
 	creds, hasKey := store.creds[arn]
 	store.mutex.RUnlock()
 
 	if hasKey {
 		if time.Now().Add(gracePeriod).Before(*creds.Expiration) {
-			clog.Info("Credential is fresh")
+			clog.Debug("Credential is fresh")
 			return creds, nil
 		}
-		clog.Info("Credential is stale, refreshing")
+		clog.Debug("Credential is stale, refreshing")
 	} else {
-		clog.Info("Credential is not in the store")
+		clog.Debug("Credential is not in the store")
 	}
 
 	duration := int64(3600)
@@ -86,7 +86,7 @@ func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Dur
 		return nil, fmt.Errorf("No credentials returned for: %s", arn)
 	}
 
-	clog.Info("Credential successfully refreshed")
+	clog.Debug("Credential successfully refreshed")
 	store.mutex.Lock()
 	store.creds[arn] = output.Credentials
 	store.mutex.Unlock()

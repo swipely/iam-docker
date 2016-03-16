@@ -43,7 +43,7 @@ func (store *containerStore) AddContainerByID(id string) error {
 	logger.WithFields(logrus.Fields{
 		"ip":   config.ip,
 		"role": config.iamRole,
-	}).Info("Adding new container")
+	}).Debug("Adding new container")
 	store.mutex.Lock()
 	store.containerIDsByIP[config.ip] = config.id
 	store.configByContainerID[config.id] = *config
@@ -73,7 +73,7 @@ func (store *containerStore) IAMRoles() []string {
 }
 
 func (store *containerStore) IAMRoleForID(id string) (string, error) {
-	log.WithFields(logrus.Fields{"id": id}).Debug("Looking up IAM role")
+	log.WithField("id", id).Debug("Looking up IAM role")
 
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
@@ -87,7 +87,7 @@ func (store *containerStore) IAMRoleForID(id string) (string, error) {
 }
 
 func (store *containerStore) IAMRoleForIP(ip string) (string, error) {
-	log.WithFields(logrus.Fields{"ip": ip}).Debug("Looking up IAM role")
+	log.WithField("ip", ip).Debug("Looking up IAM role")
 
 	store.mutex.RLock()
 	defer store.mutex.RUnlock()
@@ -111,7 +111,7 @@ func (store *containerStore) RemoveContainer(id string) {
 	store.mutex.RUnlock()
 
 	if hasKey {
-		log.WithFields(logrus.Fields{"id": id}).Info("Removing container")
+		log.WithField("id", id).Debug("Removing container")
 		store.mutex.Lock()
 		delete(store.containerIDsByIP, config.ip)
 		delete(store.configByContainerID, id)
@@ -142,7 +142,7 @@ func (store *containerStore) SyncRunningContainers() error {
 				"id":   config.id,
 				"ip":   config.ip,
 				"role": config.iamRole,
-			}).Info("Adding new container")
+			}).Debug("Adding new container")
 			store.containerIDsByIP[config.ip] = config.id
 			store.configByContainerID[config.id] = *config
 		}
@@ -191,7 +191,7 @@ func (store *containerStore) listContainers() ([]dockerClient.APIContainers, err
 }
 
 func (store *containerStore) inspectContainer(id string) (*dockerClient.Container, error) {
-	log.WithFields(logrus.Fields{"id": id}).Debug("Inspecting container")
+	log.WithField("id", id).Debug("Inspecting container")
 	var container *dockerClient.Container
 	err := withRetries(func() error {
 		var e error
