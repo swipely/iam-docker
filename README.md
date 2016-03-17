@@ -10,17 +10,17 @@ You can pull release images from [Docker Hub](https://hub.docker.com/r/swipely/i
 When running applications in EC2, [IAM roles](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html) may only be assigned at the instance level.
 Assuming that there's only one application running per instance, this works very well.
 
-[Docker](http://github.com/docker/docker) and Amazon's [Elastic Container Sevice (ECS)](https://aws.amazon.com/ecs/) have made it cost effective and convenient to run a container cluster, which could container any number of applications.
+[Docker](http://github.com/docker/docker) and Amazon's [Elastic Container Sevice (ECS)](https://aws.amazon.com/ecs/) have made it cost effective and convenient to run a container cluster, which could contain any number of applications.
 ECS clusters run on plain old EC2 instances, meaning that they can only have one IAM role per instance.
 Developers must then choose between running one cluster with a wide set of permissions, or running a different cluster for each permission set.
-These both have their disadvantages; the former is less secure than normal EC2 instances, while the latter doesn't take full advantage of containerized applications.
-Using `iam-docker`, containers can be assigned IAM Roles, allowing one cluster to run an arbitrary number of applications without sacrificing the security of vanilla EC2.
+The former allows you to run multiple applications on a single instance at the cost of security, while the later is optimally secure at the cost of instance count.
+Using `iam-docker`, a single server can run multiple applications without paying a security penalty.
 
 Note that `iam-docker` doesn't necessarily need to be used with ECS -- any EC2 instance running Docker can run use it.
 
 ## Usage
 
-Setup an root IAM role that can perform [`sts:assume-role`](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html) on the roles you'd like to assume.
+Setup an instance IAM role that can perform [`sts:assume-role`](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html) on the roles you'd like to assume.
 Also ensure that the assumed roles have a Trust Relationship which allows them to be assumed by the root role.
 See this [StackOverflow post](http://stackoverflow.com/a/33850060) for more details.
 
