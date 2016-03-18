@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	iamLabel             = "IAM_PROFILE"
+	iamLabel             = "com.swipely.iam-docker.iam-profile"
 	retrySleepBase       = time.Second
 	retrySleepMultiplier = 2
 	maxRetries           = 3
@@ -166,7 +166,7 @@ func (store *containerStore) findConfigForID(id string) (*containerConfig, error
 
 	iamRole, hasKey := container.Config.Labels[iamLabel]
 	if !hasKey {
-		return nil, fmt.Errorf("Unable to find label named IAM_PROFILE for container: %s", id)
+		return nil, fmt.Errorf("Unable to find label named '%s' for container: %s", iamLabel, id)
 	}
 	ip := container.NetworkSettings.IPAddress
 	config := &containerConfig{
