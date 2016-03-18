@@ -3,7 +3,7 @@
 This project allows Docker containers to use different EC2 instance roles.
 You can pull release images from [Docker Hub](https://hub.docker.com/r/swipely/iam-docker/).
 
-![Example gif](https://s3.amazonaws.com/swipely-pub/public-images/iam-docker-cast.gif)
+![Example gif](https://s3.amazonaws.com/swipely-pub/public-images/iam-docker-latest.gif)
 
 ## Motivation
 
@@ -46,18 +46,18 @@ Forward requests coming from your Docker network(s) to the running agent:
 $ iptables -t nat -I PREROUTING -p tcp -d 169.254.169.254 --dport 80 -j DNAT --to-destination "$GATEWAY":8080 -i "$INTERFACE"
 ```
 
-When starting containers, set their `IAM_PROFILE` environment variable:
+When starting containers, set their `com.swipely.iam-docker.iam-profile` label:
 
 ```bash
 $ export IMAGE="ubuntu:latest"
 $ export PROFILE="arn:aws:iam::1234123412:role/some-role"
-$ docker run -e IAM_PROFILE="$PROFILE" "$IMAGE"
+$ docker run --label com.swipely.iam-docker.iam-profile="$PROFILE" "$IMAGE"
 ```
 
 ## How it works
 
 The application listens to the [Docker events stream](https://docs.docker.com/engine/reference/commandline/events/) for container start events.
-When a container is started with an `IAM_PROFILE` environment variable, the application assumes that role (if possible).
+When a container is started with an `com.swipely.iam-docker.iam-profile` label, the application assumes that role (if possible).
 When the container makes an [EC2 Metadata API](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html) EC2 metadata API request, it's forwarded to the application because of the `iptables` rule above.
 If the request is for IAM credentials, the application intercepts that and determines which credentials should be passed back to the container.
 Otherwise, it acts as a reverse proxy to the real metadata API.

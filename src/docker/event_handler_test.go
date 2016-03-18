@@ -45,13 +45,13 @@ var _ = Describe("EventHandler", func() {
 		)
 
 		Context("When a start event is received", func() {
-			Context("When the container does not have an IAM_PROFILE set", func() {
+			Context("When the container does not have com.swipely.iam-docker.iam-profile set", func() {
 				BeforeEach(func() {
 					id = "CA55E77E"
 					ip = "172.17.0.2"
 					_ = dockerClient.AddContainer(&docker.Container{
 						ID:              id,
-						Config:          &docker.Config{Env: []string{}},
+						Config:          &docker.Config{Labels: map[string]string{}},
 						NetworkSettings: &docker.NetworkSettings{IPAddress: ip},
 					})
 				})
@@ -64,7 +64,7 @@ var _ = Describe("EventHandler", func() {
 				})
 			})
 
-			Context("When the container has an IAM_PROFILE set", func() {
+			Context("When the container has com.swipely.iam-docker.iam-profile set", func() {
 				var (
 					role            = "test-role"
 					accessKeyID     = "test-access-key-id"
@@ -84,7 +84,7 @@ var _ = Describe("EventHandler", func() {
 					}
 					_ = dockerClient.AddContainer(&docker.Container{
 						ID:              id,
-						Config:          &docker.Config{Env: []string{"IAM_PROFILE=" + role}},
+						Config:          &docker.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
 						NetworkSettings: &docker.NetworkSettings{IPAddress: ip},
 					})
 				})
@@ -105,7 +105,7 @@ var _ = Describe("EventHandler", func() {
 					ip = "172.17.0.4"
 					_ = dockerClient.AddContainer(&docker.Container{
 						ID:              id,
-						Config:          &docker.Config{Env: []string{}},
+						Config:          &docker.Config{Labels: map[string]string{}},
 						NetworkSettings: &docker.NetworkSettings{IPAddress: ip},
 					})
 				})
@@ -141,7 +141,7 @@ var _ = Describe("EventHandler", func() {
 					}
 					_ = dockerClient.AddContainer(&docker.Container{
 						ID:              id,
-						Config:          &docker.Config{Env: []string{"IAM_PROFILE=" + role}},
+						Config:          &docker.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
 						NetworkSettings: &docker.NetworkSettings{IPAddress: ip},
 					})
 					_ = dockerClient.RemoveContainer(id)
