@@ -78,7 +78,7 @@ var _ = Describe("Handler", func() {
 					_ = dockerClient.AddContainer(&dockerlib.Container{
 						ID: containerID,
 						Config: &dockerlib.Config{
-							Env: []string{"IAM_PROFILE=" + iamRole},
+							Labels: map[string]string{"IAM_PROFILE": iamRole},
 						},
 						NetworkSettings: &dockerlib.NetworkSettings{
 							IPAddress: ip,
@@ -163,7 +163,7 @@ var _ = Describe("Handler", func() {
 					_ = dockerClient.AddContainer(&dockerlib.Container{
 						ID: containerID,
 						Config: &dockerlib.Config{
-							Env: []string{"IAM_PROFILE=" + iamRole},
+							Labels: map[string]string{"IAM_PROFILE": iamRole},
 						},
 						NetworkSettings: &dockerlib.NetworkSettings{
 							IPAddress: ip,

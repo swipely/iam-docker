@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	dockerClient "github.com/fsouza/go-dockerclient"
-	"strings"
 	"sync"
 	"time"
 )
 
 const (
-	iamPrefix            = "IAM_PROFILE="
+	iamLabel             = "IAM_PROFILE"
 	retrySleepBase       = time.Second
 	retrySleepMultiplier = 2
 	maxRetries           = 3
@@ -165,9 +164,9 @@ func (store *containerStore) findConfigForID(id string) (*containerConfig, error
 		return nil, fmt.Errorf("Container has no network settings: %s", id)
 	}
 
-	iamRole, err := findIAMRole(container.Config.Env)
-	if err != nil {
-		return nil, err
+	iamRole, hasKey := container.Config.Labels[iamLabel]
+	if !hasKey {
+		return nil, fmt.Errorf("Unable to find label named IAM_PROFILE for container: %s", id)
 	}
 	ip := container.NetworkSettings.IPAddress
 	config := &containerConfig{
@@ -215,18 +214,6 @@ func withRetries(lambda func() error) error {
 	}
 
 	return err
-}
-
-func findIAMRole(env []string) (string, error) {
-	if env != nil {
-		for _, element := range env {
-			if strings.HasPrefix(element, iamPrefix) {
-				return strings.TrimPrefix(element, iamPrefix), nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("Unable to find environment variable with prefix: %s", iamPrefix)
 }
 
 type containerConfig struct {

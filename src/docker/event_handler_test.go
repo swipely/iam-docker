@@ -51,7 +51,7 @@ var _ = Describe("EventHandler", func() {
 					ip = "172.17.0.2"
 					_ = dockerClient.AddContainer(&docker.Container{
 						ID:              id,
-						Config:          &docker.Config{Env: []string{}},
+						Config:          &docker.Config{Labels: map[string]string{}},
 						NetworkSettings: &docker.NetworkSettings{IPAddress: ip},
 					})
 				})
@@ -84,7 +84,7 @@ var _ = Describe("EventHandler", func() {
 					}
 					_ = dockerClient.AddContainer(&docker.Container{
 						ID:              id,
-						Config:          &docker.Config{Env: []string{"IAM_PROFILE=" + role}},
+						Config:          &docker.Config{Labels: map[string]string{"IAM_PROFILE": role}},
 						NetworkSettings: &docker.NetworkSettings{IPAddress: ip},
 					})
 				})
@@ -105,7 +105,7 @@ var _ = Describe("EventHandler", func() {
 					ip = "172.17.0.4"
 					_ = dockerClient.AddContainer(&docker.Container{
 						ID:              id,
-						Config:          &docker.Config{Env: []string{}},
+						Config:          &docker.Config{Labels: map[string]string{}},
 						NetworkSettings: &docker.NetworkSettings{IPAddress: ip},
 					})
 				})
@@ -141,7 +141,7 @@ var _ = Describe("EventHandler", func() {
 					}
 					_ = dockerClient.AddContainer(&docker.Container{
 						ID:              id,
-						Config:          &docker.Config{Env: []string{"IAM_PROFILE=" + role}},
+						Config:          &docker.Config{Labels: map[string]string{"IAM_PROFILE": role}},
 						NetworkSettings: &docker.NetworkSettings{IPAddress: ip},
 					})
 					_ = dockerClient.RemoveContainer(id)
