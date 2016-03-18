@@ -46,18 +46,18 @@ Forward requests coming from your Docker network(s) to the running agent:
 $ iptables -t nat -I PREROUTING -p tcp -d 169.254.169.254 --dport 80 -j DNAT --to-destination "$GATEWAY":8080 -i "$INTERFACE"
 ```
 
-When starting containers, set their `IAM_PROFILE` environment variable:
+When starting containers, set their `IAM_PROFILE` label variable:
 
 ```bash
 $ export IMAGE="ubuntu:latest"
 $ export PROFILE="arn:aws:iam::1234123412:role/some-role"
-$ docker run -e IAM_PROFILE="$PROFILE" "$IMAGE"
+$ docker run --label IAM_PROFILE="$PROFILE" "$IMAGE"
 ```
 
 ## How it works
 
 The application listens to the [Docker events stream](https://docs.docker.com/engine/reference/commandline/events/) for container start events.
-When a container is started with an `IAM_PROFILE` environment variable, the application assumes that role (if possible).
+When a container is started with an `IAM_PROFILE` label, the application assumes that role (if possible).
 When the container makes an [EC2 Metadata API](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html) EC2 metadata API request, it's forwarded to the application because of the `iptables` rule above.
 If the request is for IAM credentials, the application intercepts that and determines which credentials should be passed back to the container.
 Otherwise, it acts as a reverse proxy to the real metadata API.
