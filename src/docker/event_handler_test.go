@@ -45,7 +45,7 @@ var _ = Describe("EventHandler", func() {
 		)
 
 		Context("When a start event is received", func() {
-			Context("When the container does not have an com.swipely.iam-docker.iam-profile set", func() {
+			Context("When the container does not have com.swipely.iam-docker.iam-profile set", func() {
 				BeforeEach(func() {
 					id = "CA55E77E"
 					ip = "172.17.0.2"
@@ -64,7 +64,7 @@ var _ = Describe("EventHandler", func() {
 				})
 			})
 
-			Context("When the container has an com.swipely.iam-docker.iam-profile set", func() {
+			Context("When the container has com.swipely.iam-docker.iam-profile set", func() {
 				var (
 					role            = "test-role"
 					accessKeyID     = "test-access-key-id"
