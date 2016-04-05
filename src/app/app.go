@@ -17,19 +17,19 @@ var (
 )
 
 // New creates a new application with the given config.
-func New(config *Config, dockerClient docker.RawClient, stsClient iam.STSClient, errorChan chan<- error) *App {
+func New(config *Config, dockerClient docker.RawClient, stsClient iam.STSClient) *App {
 	return &App{
 		Config:       config,
 		DockerClient: dockerClient,
 		STSClient:    stsClient,
-		ErrorChan:    errorChan,
 	}
 }
 
 // Run starts the application asynchronously.
-func (app *App) Run() {
+func (app *App) Run() error {
 	log.Info("Running the app")
 
+	errorChan := make(chan error)
 	containerStore := docker.NewContainerStore(app.DockerClient)
 	credentialStore := iam.NewCredentialStore(app.STSClient)
 	eventHandler := docker.NewEventHandler(app.Config.EventHandlers, containerStore, credentialStore)
@@ -38,8 +38,10 @@ func (app *App) Run() {
 
 	go app.containerSyncWorker(containerStore, credentialStore)
 	go app.refreshCredentialWorker(credentialStore)
-	go app.httpWorker(handler)
-	go app.eventWorker(eventHandler)
+	go app.httpWorker(handler, errorChan)
+	go app.eventWorker(eventHandler, errorChan)
+
+	return <-errorChan
 }
 
 func (app *App) containerSyncWorker(containerStore docker.ContainerStore, credentialStore iam.CredentialStore) {
@@ -71,7 +73,7 @@ func (app *App) refreshCredentialWorker(credentialStore iam.CredentialStore) {
 	}
 }
 
-func (app *App) httpWorker(handler netHTTP.Handler) {
+func (app *App) httpWorker(handler netHTTP.Handler, errorChan chan error) {
 	wlog := log.WithFields(logrus.Fields{"worker": "http"})
 	writer := wlog.Logger.Writer()
 	server := netHTTP.Server{
@@ -88,10 +90,10 @@ func (app *App) httpWorker(handler netHTTP.Handler) {
 		"error": err.Error(),
 	}).Error("Failed to serve HTTP")
 	_ = writer.Close()
-	app.ErrorChan <- err
+	errorChan <- err
 }
 
-func (app *App) eventWorker(eventHandler docker.EventHandler) {
+func (app *App) eventWorker(eventHandler docker.EventHandler, errorChan chan error) {
 	wlog := log.WithFields(logrus.Fields{"worker": "event-handler"})
 	wlog.Info("Starting")
 	for {
@@ -102,7 +104,7 @@ func (app *App) eventWorker(eventHandler docker.EventHandler) {
 			wlog.WithFields(logrus.Fields{
 				"error": err.Error(),
 			}).Error("Failed to add Docker event listener")
-			app.ErrorChan <- err
+			errorChan <- err
 			return
 		}
 		err = eventHandler.Listen(events)
@@ -117,7 +119,7 @@ func (app *App) eventWorker(eventHandler docker.EventHandler) {
 }
 
 func (app *App) syncRunningContainers(containerStore docker.ContainerStore, credentialStore iam.CredentialStore, logger *logrus.Entry) {
-	logger.Debug("Syncing containers")
+	logger.Info("Syncing containers")
 	err := containerStore.SyncRunningContainers()
 	if err != nil {
 		logger.WithFields(logrus.Fields{
@@ -134,7 +136,7 @@ func (app *App) syncRunningContainers(containerStore docker.ContainerStore, cred
 		} else {
 			logger.WithFields(logrus.Fields{
 				"arn": arn,
-			}).Info("Successfully fetch credential")
+			}).Info("Successfully fetched credential")
 		}
 	}
 }

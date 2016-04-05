@@ -58,12 +58,10 @@ func main() {
 		os.Exit(1)
 	}
 	stsClient := sts.New(session.New())
-	errChan := make(chan error)
 
-	inst := app.New(config, dockerClient, stsClient, errChan)
-	inst.Run()
-
-	err = <-errChan
+	inst := app.New(config, dockerClient, stsClient)
+	err = inst.Run()
 	log.WithField("error", err.Error()).Error("Fatal error, exiting")
+
 	os.Exit(1)
 }
