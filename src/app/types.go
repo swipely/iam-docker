@@ -12,7 +12,6 @@ type App struct {
 	Config       *Config
 	DockerClient docker.RawClient
 	STSClient    iam.STSClient
-	ErrorChan    chan<- error
 }
 
 // Config holds application configuration
