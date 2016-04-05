@@ -32,7 +32,7 @@ func (store *credentialStore) CredentialsForRole(arn string) (*sts.Credentials, 
 }
 
 func (store *credentialStore) RefreshCredentials() {
-	log.Debug("Refreshing all IAM credentials")
+	log.Info("Refreshing all IAM credentials")
 	store.mutex.RLock()
 	arns := make([]string, len(store.creds))
 	count := 0
@@ -51,7 +51,7 @@ func (store *credentialStore) RefreshCredentials() {
 			}).Warn("Unable to refresh credential")
 		}
 	}
-	log.Debug("Done refreshing all IAM credentials")
+	log.Info("Done refreshing all IAM credentials")
 }
 
 func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Duration) (*sts.Credentials, error) {
@@ -86,7 +86,7 @@ func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Dur
 		return nil, fmt.Errorf("No credentials returned for: %s", arn)
 	}
 
-	clog.Debug("Credential successfully refreshed")
+	clog.Info("Credential successfully refreshed")
 	store.mutex.Lock()
 	store.creds[arn] = output.Credentials
 	store.mutex.Unlock()

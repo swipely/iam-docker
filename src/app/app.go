@@ -119,7 +119,7 @@ func (app *App) eventWorker(eventHandler docker.EventHandler, errorChan chan err
 }
 
 func (app *App) syncRunningContainers(containerStore docker.ContainerStore, credentialStore iam.CredentialStore, logger *logrus.Entry) {
-	logger.Debug("Syncing containers")
+	logger.Info("Syncing containers")
 	err := containerStore.SyncRunningContainers()
 	if err != nil {
 		logger.WithFields(logrus.Fields{
@@ -136,7 +136,7 @@ func (app *App) syncRunningContainers(containerStore docker.ContainerStore, cred
 		} else {
 			logger.WithFields(logrus.Fields{
 				"arn": arn,
-			}).Info("Successfully fetch credential")
+			}).Info("Successfully fetched credential")
 		}
 	}
 }
