@@ -47,7 +47,7 @@ func (handler *httpHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		logger.Info("Serving IAM credentials request")
 		handler.serveIAMRequest(writer, request, logger)
 	} else if (request.Method == iamMethod) && listRegex.MatchString(request.URL.Path) {
-		logger.Info("Serving list IAM credentials request")
+		logger.Debug("Serving list IAM credentials request")
 		handler.serveListCredentialsRequest(writer, request, logger)
 	} else {
 		logger.Debug("Delegating request upstream")
@@ -91,7 +91,7 @@ func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request 
 		logger.WithField("error", err.Error()).Warn("Unable to write response")
 		return
 	}
-	logger.Info("Successfully responded")
+	logger.Debug("Successfully responded")
 }
 
 func (handler *httpHandler) serveListCredentialsRequest(writer http.ResponseWriter, request *http.Request, logger *logrus.Entry) {
@@ -108,7 +108,7 @@ func (handler *httpHandler) serveListCredentialsRequest(writer http.ResponseWrit
 		logger.WithField("error", err.Error()).Warn("Unable to write response")
 		return
 	}
-	logger.Info("Successfully responded")
+	logger.Debug("Successfully responded")
 }
 
 func (handler *httpHandler) credentialsForAddress(address string, logger *logrus.Entry) (*string, *sts.Credentials, error) {
