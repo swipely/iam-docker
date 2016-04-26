@@ -6,6 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/swipely/iam-docker/src/docker"
 	"github.com/swipely/iam-docker/src/iam"
+	"github.com/valyala/fasthttp"
+	adaptor "github.com/valyala/fasthttp/fasthttpadaptor"
 	"net/http"
 	"regexp"
 	"strings"
@@ -28,48 +30,54 @@ var (
 // When the request is for the IAM path, it looks up the IAM role in the
 // container store and fetches those credentials. Otherwise, it acts as a
 // reverse proxy for the real API.
-func NewIAMHandler(upstream http.Handler, containerStore docker.ContainerStore, credentialStore iam.CredentialStore) http.Handler {
-	return &httpHandler{
-		upstream:        upstream,
+func NewIAMHandler(upstream http.Handler, containerStore docker.ContainerStore, credentialStore iam.CredentialStore) fasthttp.RequestHandler {
+	handler := &httpHandler{
+		upstreamHandler: adaptor.NewFastHTTPHandler(upstream),
 		containerStore:  containerStore,
 		credentialStore: credentialStore,
 	}
+
+	return handler.serveFastHTTP
 }
 
-func (handler *httpHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
+	path := string(ctx.Path())
+	method := string(ctx.Method())
+	addr := ctx.RemoteAddr().String()
+
 	logger := log.WithFields(logrus.Fields{
-		"path":       request.URL.Path,
-		"method":     request.Method,
-		"remoteAddr": request.RemoteAddr,
+		"path":       path,
+		"method":     method,
+		"remoteAddr": addr,
 	})
 
-	if (request.Method == iamMethod) && iamRegex.MatchString(request.URL.Path) {
+	if (method == iamMethod) && iamRegex.MatchString(path) {
 		logger.Info("Serving IAM credentials request")
-		handler.serveIAMRequest(writer, request, logger)
-	} else if (request.Method == iamMethod) && listRegex.MatchString(request.URL.Path) {
+		handler.serveIAMRequest(ctx, addr, path, logger)
+	} else if (method == iamMethod) && listRegex.MatchString(path) {
 		logger.Debug("Serving list IAM credentials request")
-		handler.serveListCredentialsRequest(writer, request, logger)
+		handler.serveListCredentialsRequest(ctx, addr, logger)
 	} else {
 		logger.Debug("Delegating request upstream")
-		handler.upstream.ServeHTTP(writer, request)
+		handler.upstreamHandler(ctx)
 	}
 }
 
-func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request *http.Request, logger *logrus.Entry) {
-	role, creds, err := handler.credentialsForAddress(request.RemoteAddr, logger)
+func (handler *httpHandler) serveIAMRequest(ctx *fasthttp.RequestCtx, addr string, path string, logger *logrus.Entry) {
+	role, creds, err := handler.credentialsForAddress(addr)
 	if err != nil {
 		logger.WithField("error", err.Error()).Warn("Unable to find credentials")
-		writer.WriteHeader(http.StatusNotFound)
+		ctx.SetStatusCode(http.StatusNotFound)
 		return
 	}
-	splitPath := strings.Split(request.URL.Path, "/")
+	splitPath := strings.Split(path, "/")
 	requestedRole := splitPath[len(splitPath)-1]
 	if !strings.HasSuffix(*role, requestedRole) {
 		logger.WithFields(logrus.Fields{
 			"actual-role":    *role,
 			"requested-role": requestedRole,
 		}).Warn("Role mismatch")
-		writer.WriteHeader(http.StatusUnauthorized)
+		ctx.SetStatusCode(http.StatusUnauthorized)
 		return
 	}
 	response, err := json.Marshal(&CredentialResponse{
@@ -83,10 +91,10 @@ func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request 
 	})
 	if err != nil {
 		logger.WithField("error", err.Error()).Warn("Unable to serialize JSON")
-		writer.WriteHeader(http.StatusInternalServerError)
+		ctx.SetStatusCode(http.StatusInternalServerError)
 		return
 	}
-	_, err = writer.Write(response)
+	ctx.SetBody(response)
 	if err != nil {
 		logger.WithField("error", err.Error()).Warn("Unable to write response")
 		return
@@ -94,32 +102,25 @@ func (handler *httpHandler) serveIAMRequest(writer http.ResponseWriter, request 
 	logger.Debug("Successfully responded")
 }
 
-func (handler *httpHandler) serveListCredentialsRequest(writer http.ResponseWriter, request *http.Request, logger *logrus.Entry) {
-	role, _, err := handler.credentialsForAddress(request.RemoteAddr, logger)
+func (handler *httpHandler) serveListCredentialsRequest(ctx *fasthttp.RequestCtx, addr string, logger *logrus.Entry) {
+	role, _, err := handler.credentialsForAddress(addr)
 	if err != nil {
 		logger.WithField("error", err.Error()).Warn("Unable to find credentials")
-		writer.WriteHeader(http.StatusNotFound)
+		ctx.SetStatusCode(http.StatusNotFound)
 		return
 	}
 	split := strings.Split(*role, "/")
 	prettyName := split[len(split)-1]
-	_, err = writer.Write([]byte(prettyName))
-	if err != nil {
-		logger.WithField("error", err.Error()).Warn("Unable to write response")
-		return
-	}
+	ctx.SetBody([]byte(prettyName))
 	logger.Debug("Successfully responded")
 }
 
-func (handler *httpHandler) credentialsForAddress(address string, logger *logrus.Entry) (*string, *sts.Credentials, error) {
+func (handler *httpHandler) credentialsForAddress(address string) (*string, *sts.Credentials, error) {
 	ip := strings.Split(address, ":")[0]
-	logger.Debug("Fetching IAM role")
 	role, err := handler.containerStore.IAMRoleForIP(ip)
 	if err != nil {
 		return nil, nil, err
 	}
-	logger = logger.WithFields(logrus.Fields{"role": role})
-	logger.Debug("Fetching credentials")
 	creds, err := handler.credentialStore.CredentialsForRole(role)
 	if err != nil {
 		return nil, nil, err
@@ -128,7 +129,7 @@ func (handler *httpHandler) credentialsForAddress(address string, logger *logrus
 }
 
 type httpHandler struct {
-	upstream        http.Handler
+	upstreamHandler fasthttp.RequestHandler
 	containerStore  docker.ContainerStore
 	credentialStore iam.CredentialStore
 }
