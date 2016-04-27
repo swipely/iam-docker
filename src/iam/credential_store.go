@@ -20,11 +20,11 @@ var (
 
 // NewCredentialStore accepts an STSClient and creates a new cache for assumed
 // IAM credentials.
-func NewCredentialStore(client STSClient) CredentialStore {
+func NewCredentialStore(client STSClient, seed int64) CredentialStore {
 	return &credentialStore{
 		client: client,
 		creds:  make(map[string]*sts.Credentials),
-		rng:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng:    rand.New(rand.NewSource(seed)),
 	}
 }
 

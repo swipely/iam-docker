@@ -8,6 +8,8 @@ import (
 	"github.com/swipely/iam-docker/src/iam"
 	"github.com/valyala/fasthttp"
 	"net/http/httputil"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -30,7 +32,7 @@ func (app *App) Run() error {
 
 	errorChan := make(chan error)
 	containerStore := docker.NewContainerStore(app.DockerClient)
-	credentialStore := iam.NewCredentialStore(app.STSClient)
+	credentialStore := iam.NewCredentialStore(app.STSClient, app.randomSeed())
 	eventHandler := docker.NewEventHandler(app.Config.EventHandlers, containerStore, credentialStore)
 	proxy := httputil.NewSingleHostReverseProxy(app.Config.MetaDataUpstream)
 	handler := http.NewIAMHandler(proxy, containerStore, credentialStore)
@@ -136,4 +138,19 @@ func (app *App) syncRunningContainers(containerStore docker.ContainerStore, cred
 			}).Info("Successfully fetched credential")
 		}
 	}
+}
+
+func (app *App) randomSeed() int64 {
+	nano := time.Now().UnixNano()
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Warn("Unable to get hostname for random seed")
+		return nano
+	}
+	int, err := strconv.ParseInt(hostname, 16, 64)
+	if err != nil {
+		log.WithField("hostname", hostname).Warn("Hostname is not hex")
+		return nano
+	}
+	return int ^ nano
 }

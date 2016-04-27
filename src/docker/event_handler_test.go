@@ -28,7 +28,7 @@ var _ = Describe("EventHandler", func() {
 		dockerClient = mock.NewDockerClient()
 		stsClient = mock.NewSTSClient()
 		containerStore = NewContainerStore(dockerClient)
-		credentialStore = iam.NewCredentialStore(stsClient)
+		credentialStore = iam.NewCredentialStore(stsClient, 1)
 		subject = NewEventHandler(1, containerStore, credentialStore)
 		_ = dockerClient.AddEventListener(channel)
 		waitGroup.Add(1)
