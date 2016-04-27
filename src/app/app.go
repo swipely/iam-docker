@@ -142,11 +142,7 @@ func (app *App) syncRunningContainers(containerStore docker.ContainerStore, cred
 
 func (app *App) randomSeed() int64 {
 	nano := time.Now().UnixNano()
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Warn("Unable to get hostname for random seed")
-		return nano
-	}
+	hostname := os.Getenv("HOSTNAME")
 	int, err := strconv.ParseInt(hostname, 16, 64)
 	if err != nil {
 		log.WithField("hostname", hostname).Warn("Hostname is not hex")
