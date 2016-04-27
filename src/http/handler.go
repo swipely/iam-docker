@@ -98,10 +98,6 @@ func (handler *httpHandler) serveIAMRequest(ctx *fasthttp.RequestCtx, addr strin
 		return
 	}
 	ctx.SetBody(response)
-	if err != nil {
-		logger.WithField("error", err.Error()).Warn("Unable to write response")
-		return
-	}
 	logger.Debug("Successfully responded")
 }
 
