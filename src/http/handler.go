@@ -9,7 +9,6 @@ import (
 	"github.com/valyala/fasthttp"
 	adaptor "github.com/valyala/fasthttp/fasthttpadaptor"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -18,12 +17,11 @@ const (
 	iamMethod      = "GET"
 	credentialType = "AWS-HMAC"
 	credentialCode = "Success"
+	iamPath        = "/meta-data/iam/security-credentials/"
 )
 
 var (
-	iamRegex  = regexp.MustCompile("^/[^/]+/meta-data/iam/security-credentials/[^/]+$")
-	listRegex = regexp.MustCompile("^/[^/]+/meta-data/iam/security-credentials/?$")
-	log       = logrus.WithField("prefix", "http")
+	log = logrus.WithField("prefix", "http")
 )
 
 // NewIAMHandler creates a http.Handler which responds to metadata API requests.
@@ -51,16 +49,21 @@ func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 		"remoteAddr": addr,
 	})
 
-	if (method == iamMethod) && iamRegex.MatchString(path) {
-		logger.Info("Serving IAM credentials request")
-		handler.serveIAMRequest(ctx, addr, path, logger)
-	} else if (method == iamMethod) && listRegex.MatchString(path) {
-		logger.Debug("Serving list IAM credentials request")
-		handler.serveListCredentialsRequest(ctx, addr, logger)
-	} else {
-		logger.Debug("Delegating request upstream")
-		handler.upstreamHandler(ctx)
+	if method == iamMethod {
+		idx := strings.LastIndex(path, iamPath)
+		if idx == (len(path) - len(iamPath)) {
+			logger.Debug("Serving list IAM credentials request")
+			handler.serveListCredentialsRequest(ctx, addr, logger)
+			return
+		} else if idx >= 0 {
+			logger.Info("Serving IAM credentials request")
+			handler.serveIAMRequest(ctx, addr, path, logger)
+			return
+		}
 	}
+
+	logger.Debug("Delegating request upstream")
+	handler.upstreamHandler(ctx)
 }
 
 func (handler *httpHandler) serveIAMRequest(ctx *fasthttp.RequestCtx, addr string, path string, logger *logrus.Entry) {
