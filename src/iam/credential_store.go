@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	refreshGracePeriod  = time.Minute * 2
+	refreshGracePeriod  = time.Minute * 10
 	realTimeGracePeriod = time.Second * 10
 )
 
@@ -20,10 +20,11 @@ var (
 
 // NewCredentialStore accepts an STSClient and creates a new cache for assumed
 // IAM credentials.
-func NewCredentialStore(client STSClient) CredentialStore {
+func NewCredentialStore(client STSClient, seed int64) CredentialStore {
 	return &credentialStore{
 		client: client,
 		creds:  make(map[string]*sts.Credentials),
+		rng:    rand.New(rand.NewSource(seed)),
 	}
 }
 
@@ -33,14 +34,14 @@ func (store *credentialStore) CredentialsForRole(arn string) (*sts.Credentials, 
 
 func (store *credentialStore) RefreshCredentials() {
 	log.Info("Refreshing all IAM credentials")
-	store.mutex.RLock()
+	store.credMutex.RLock()
 	arns := make([]string, len(store.creds))
 	count := 0
 	for arn := range store.creds {
 		arns[count] = arn
 		count++
 	}
-	store.mutex.RUnlock()
+	store.credMutex.RUnlock()
 
 	for _, arn := range arns {
 		_, err := store.refreshCredential(arn, refreshGracePeriod)
@@ -57,9 +58,9 @@ func (store *credentialStore) RefreshCredentials() {
 func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Duration) (*sts.Credentials, error) {
 	clog := log.WithField("arn", arn)
 	clog.Debug("Checking for stale credential")
-	store.mutex.RLock()
+	store.credMutex.RLock()
 	creds, hasKey := store.creds[arn]
-	store.mutex.RUnlock()
+	store.credMutex.RUnlock()
 
 	if hasKey {
 		if time.Now().Add(gracePeriod).Before(*creds.Expiration) {
@@ -72,7 +73,7 @@ func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Dur
 	}
 
 	duration := int64(3600)
-	sessionName := generateSessionName()
+	sessionName := store.generateSessionName()
 
 	output, err := store.client.AssumeRole(&sts.AssumeRoleInput{
 		RoleArn:         &arn,
@@ -87,24 +88,33 @@ func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Dur
 	}
 
 	clog.Info("Credential successfully refreshed")
-	store.mutex.Lock()
+	store.credMutex.Lock()
 	store.creds[arn] = output.Credentials
-	store.mutex.Unlock()
+	store.credMutex.Unlock()
 
 	return output.Credentials, nil
 }
 
-func generateSessionName() string {
-	size := 16
-	ary := make([]byte, size)
-	for i := range ary {
-		ary[i] = byte((rand.Int() % 26) + 65)
+func (store *credentialStore) generateSessionName() string {
+	ary := [16]byte{}
+	idx := 0
+	for idx < 16 {
+		store.rngMutex.Lock()
+		int := store.rng.Int63()
+		store.rngMutex.Unlock()
+		for (int > 0) && (idx < 16) {
+			ary[idx] = byte((int % 26) + 65)
+			int /= 26
+			idx++
+		}
 	}
-	return string(ary)
+	return string(ary[:])
 }
 
 type credentialStore struct {
-	client STSClient
-	creds  map[string]*sts.Credentials
-	mutex  sync.RWMutex
+	client    STSClient
+	creds     map[string]*sts.Credentials
+	rng       *rand.Rand
+	rngMutex  sync.Mutex
+	credMutex sync.RWMutex
 }

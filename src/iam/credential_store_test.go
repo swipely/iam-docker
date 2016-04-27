@@ -17,7 +17,7 @@ var _ = Describe("CredentialStore", func() {
 
 	BeforeEach(func() {
 		client = mock.NewSTSClient()
-		subject = NewCredentialStore(client)
+		subject = NewCredentialStore(client, 1)
 	})
 
 	Describe("CredentialsForRole", func() {

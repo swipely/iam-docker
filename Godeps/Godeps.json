@@ -1,6 +1,7 @@
 {
 	"ImportPath": "github.com/swipely/iam-docker",
 	"GoVersion": "go1.6",
+	"GodepVersion": "v62",
 	"Packages": [
 		"./src/..."
 	],
@@ -193,6 +194,31 @@
 			"Rev": "0b12d6b521d83fc7f755e7cfc1b1fbdd35a01a74"
 		},
 		{
+			"ImportPath": "github.com/klauspost/compress/flate",
+			"Comment": "v1.0-12-g14eb9c4",
+			"Rev": "14eb9c4951195779ecfbec34431a976de7335b0a"
+		},
+		{
+			"ImportPath": "github.com/klauspost/compress/gzip",
+			"Comment": "v1.0-12-g14eb9c4",
+			"Rev": "14eb9c4951195779ecfbec34431a976de7335b0a"
+		},
+		{
+			"ImportPath": "github.com/klauspost/compress/zlib",
+			"Comment": "v1.0-12-g14eb9c4",
+			"Rev": "14eb9c4951195779ecfbec34431a976de7335b0a"
+		},
+		{
+			"ImportPath": "github.com/klauspost/cpuid",
+			"Comment": "v1.0",
+			"Rev": "09cded8978dc9e80714c4d85b0322337b0a1e5e0"
+		},
+		{
+			"ImportPath": "github.com/klauspost/crc32",
+			"Comment": "v1.0",
+			"Rev": "19b0b332c9e4516a6370a0456e6182c3b5036720"
+		},
+		{
 			"ImportPath": "github.com/onsi/ginkgo",
 			"Comment": "v1.2.0-11-gd94e2f4",
 			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
@@ -321,6 +347,16 @@
 			"ImportPath": "github.com/onsi/gomega/types",
 			"Comment": "v1.0-52-ga2ab864",
 			"Rev": "a2ab8644e0b6a33df2cbe44673bd0f6ebba9abc3"
+		},
+		{
+			"ImportPath": "github.com/valyala/fasthttp",
+			"Comment": "v20160419-2-g2a12271",
+			"Rev": "2a122714064d56e2f7935e226eef5d1bcb77a612"
+		},
+		{
+			"ImportPath": "github.com/valyala/fasthttp/fasthttpadaptor",
+			"Comment": "v20160419-2-g2a12271",
+			"Rev": "2a122714064d56e2f7935e226eef5d1bcb77a612"
 		}
 	]
 }

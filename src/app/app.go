@@ -6,9 +6,10 @@ import (
 	"github.com/swipely/iam-docker/src/docker"
 	"github.com/swipely/iam-docker/src/http"
 	"github.com/swipely/iam-docker/src/iam"
-	stdLog "log"
-	netHTTP "net/http"
+	"github.com/valyala/fasthttp"
+	"hash/fnv"
 	"net/http/httputil"
+	"os"
 	"time"
 )
 
@@ -31,7 +32,7 @@ func (app *App) Run() error {
 
 	errorChan := make(chan error)
 	containerStore := docker.NewContainerStore(app.DockerClient)
-	credentialStore := iam.NewCredentialStore(app.STSClient)
+	credentialStore := iam.NewCredentialStore(app.STSClient, app.randomSeed())
 	eventHandler := docker.NewEventHandler(app.Config.EventHandlers, containerStore, credentialStore)
 	proxy := httputil.NewSingleHostReverseProxy(app.Config.MetaDataUpstream)
 	handler := http.NewIAMHandler(proxy, containerStore, credentialStore)
@@ -73,23 +74,21 @@ func (app *App) refreshCredentialWorker(credentialStore iam.CredentialStore) {
 	}
 }
 
-func (app *App) httpWorker(handler netHTTP.Handler, errorChan chan error) {
+func (app *App) httpWorker(handler fasthttp.RequestHandler, errorChan chan error) {
 	wlog := log.WithFields(logrus.Fields{"worker": "http"})
-	writer := wlog.Logger.Writer()
-	server := netHTTP.Server{
-		Addr:           app.Config.ListenAddr,
-		Handler:        handler,
-		ReadTimeout:    app.Config.ReadTimeout,
-		WriteTimeout:   app.Config.WriteTimeout,
-		MaxHeaderBytes: 1 << 20,
-		ErrorLog:       stdLog.New(writer, "", 0),
-	}
 	wlog.Info("Starting")
-	err := server.ListenAndServe()
+	server := fasthttp.Server{
+		Handler:      handler,
+		Name:         "iam-docker",
+		ReadTimeout:  app.Config.ReadTimeout,
+		WriteTimeout: app.Config.WriteTimeout,
+		Logger:       wlog.Logger,
+		DisableHeaderNamesNormalizing: true,
+	}
+	err := server.ListenAndServe(app.Config.ListenAddr)
 	wlog.WithFields(logrus.Fields{
 		"error": err.Error(),
 	}).Error("Failed to serve HTTP")
-	_ = writer.Close()
 	errorChan <- err
 }
 
@@ -139,4 +138,16 @@ func (app *App) syncRunningContainers(containerStore docker.ContainerStore, cred
 			}).Info("Successfully fetched credential")
 		}
 	}
+}
+
+func (app *App) randomSeed() int64 {
+	nano := time.Now().UnixNano()
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.WithField("error", err).Warn("Unable to fetch Hostname")
+		return nano
+	}
+	hash := fnv.New64a()
+	hash.Write([]byte(hostname))
+	return nano ^ int64(hash.Sum64())
 }
