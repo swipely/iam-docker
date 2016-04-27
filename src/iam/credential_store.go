@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	refreshGracePeriod  = time.Minute * 2
+	refreshGracePeriod  = time.Minute * 10
 	realTimeGracePeriod = time.Second * 10
 )
 
