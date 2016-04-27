@@ -7,9 +7,9 @@ import (
 	"github.com/swipely/iam-docker/src/http"
 	"github.com/swipely/iam-docker/src/iam"
 	"github.com/valyala/fasthttp"
+	"hash/fnv"
 	"net/http/httputil"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -142,11 +142,12 @@ func (app *App) syncRunningContainers(containerStore docker.ContainerStore, cred
 
 func (app *App) randomSeed() int64 {
 	nano := time.Now().UnixNano()
-	hostname := os.Getenv("HOSTNAME")
-	int, err := strconv.ParseInt(hostname, 16, 64)
+	hostname, err := os.Hostname()
 	if err != nil {
-		log.WithField("hostname", hostname).Warn("Hostname is not hex")
+		log.WithField("error", err).Warn("Unable to fetch Hostname")
 		return nano
 	}
-	return int ^ nano
+	hash := fnv.New64a()
+	hash.Write([]byte(hostname))
+	return nano ^ int64(hash.Sum64())
 }
