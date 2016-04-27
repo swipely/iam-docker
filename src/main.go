@@ -21,21 +21,25 @@ var (
 	eventHandlers           = flag.Int("event-handlers", 4, "Number of workers listening to the Docker Events channel")
 	dockerSyncPeriod        = flag.Duration("docker-sync-period", 0*time.Second, "Frequency of Docker Container sync; default is never")
 	credentialRefreshPeriod = flag.Duration("credential-refresh-period", time.Minute, "Frequency of the IAM credential sync")
-	verbose                 = flag.Bool("verbose", false, "Enable verbose logging")
+	logLevel                = flag.String("log-level", "info", "Set the log level to debug, info, warning, error, fatal, or panic")
 )
 
 func main() {
 	flag.Parse()
 
-	if *verbose {
-		logrus.SetLevel(logrus.DebugLevel)
-	} else {
-		logrus.SetLevel(logrus.InfoLevel)
-	}
 	logrus.SetOutput(os.Stdout)
 	logrus.SetFormatter(&iamLog.Formatter{})
+	log := logrus.WithField("prefix", "main")
 
-	log := logrus.WithFields(logrus.Fields{"prefix": "main"})
+	level, err := logrus.ParseLevel(*logLevel)
+	if err != nil {
+		level = logrus.InfoLevel
+		log.WithField(
+			"desiredLogLevel",
+			*logLevel,
+		).Warn("No log level given, setting to Info level")
+	}
+	logrus.SetLevel(level)
 
 	metaDataUpstream, err := url.Parse(*metadata)
 	if err != nil {
