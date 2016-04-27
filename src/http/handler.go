@@ -70,8 +70,8 @@ func (handler *httpHandler) serveIAMRequest(ctx *fasthttp.RequestCtx, addr strin
 		ctx.SetStatusCode(http.StatusNotFound)
 		return
 	}
-	splitPath := strings.Split(path, "/")
-	requestedRole := splitPath[len(splitPath)-1]
+	idx := strings.LastIndex(path, "/")
+	requestedRole := path[idx+1:]
 	if !strings.HasSuffix(*role, requestedRole) {
 		logger.WithFields(logrus.Fields{
 			"actual-role":    *role,
@@ -109,9 +109,8 @@ func (handler *httpHandler) serveListCredentialsRequest(ctx *fasthttp.RequestCtx
 		ctx.SetStatusCode(http.StatusNotFound)
 		return
 	}
-	split := strings.Split(*role, "/")
-	prettyName := split[len(split)-1]
-	ctx.SetBody([]byte(prettyName))
+	idx := strings.LastIndex(*role, "/")
+	ctx.SetBodyString((*role)[idx+1:])
 	logger.Debug("Successfully responded")
 }
 
