@@ -114,7 +114,11 @@ func (handler *httpHandler) serveListCredentialsRequest(ctx *fasthttp.RequestCtx
 }
 
 func (handler *httpHandler) credentialsForAddress(address string) (*string, *sts.Credentials, error) {
-	ip := strings.Split(address, ":")[0]
+	ip := address
+	idx := strings.Index(address, ":")
+	if idx >= 0 {
+		ip = address[:idx]
+	}
 	role, err := handler.containerStore.IAMRoleForIP(ip)
 	if err != nil {
 		return nil, nil, err
