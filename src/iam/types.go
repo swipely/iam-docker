@@ -14,6 +14,10 @@ type STSClient interface {
 type CredentialStore interface {
 	// Lookup the credentials for the given ARN.
 	CredentialsForRole(arn string) (*sts.Credentials, error)
+	// Get a lits of the arns within the CredentialStore.
+	AvailableARNs() []string
+	// Attempt to refresh a Credential by its ARN.
+	RefreshCredentialIfStale(arn string) error
 	// Refresh all the credentials that are expired or are about to expire.
 	RefreshCredentials()
 }

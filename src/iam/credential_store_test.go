@@ -26,40 +26,10 @@ var _ = Describe("CredentialStore", func() {
 		)
 
 		Context("When the credentials have not been assumed", func() {
-			Context("When the credentials cannot be assumed", func() {
-				It("Returns an error", func() {
-					creds, err := subject.CredentialsForRole(role)
-					Expect(creds).To(BeNil())
-					Expect(err).ToNot(BeNil())
-				})
-			})
-
-			Context("When the credentials can be assumed", func() {
-				var (
-					accessKeyID     = "fakeaccesskeyid"
-					secretAccessKey = "fakesecretaccesskey"
-					expiration      = time.Now().Add(time.Hour)
-					sessionToken    = "fakesessiontoken"
-				)
-
-				BeforeEach(func() {
-					client.AssumableRoles[role] = &sts.Credentials{
-						AccessKeyId:     &accessKeyID,
-						SecretAccessKey: &secretAccessKey,
-						Expiration:      &expiration,
-						SessionToken:    &sessionToken,
-					}
-				})
-
-				It("Returns the credentials", func() {
-					creds, err := subject.CredentialsForRole(role)
-					Expect(creds).ToNot(BeNil())
-					Expect(err).To(BeNil())
-					Expect(*creds.AccessKeyId).To(Equal(accessKeyID))
-					Expect(*creds.SecretAccessKey).To(Equal(secretAccessKey))
-					Expect(*creds.Expiration).To(Equal(expiration))
-					Expect(*creds.SessionToken).To(Equal(sessionToken))
-				})
+			It("Returns an error", func() {
+				creds, err := subject.CredentialsForRole(role)
+				Expect(creds).To(BeNil())
+				Expect(err).ToNot(BeNil())
 			})
 		})
 
@@ -79,52 +49,18 @@ var _ = Describe("CredentialStore", func() {
 
 			BeforeEach(func() {
 				client.AssumableRoles[role] = creds
-				_, _ = subject.CredentialsForRole(role)
 			})
 
-			Context("But they are about to go stale", func() {
-				var (
-					newExpiration time.Time
-				)
-
-				JustBeforeEach(func() {
-					expiration = time.Now().Add(5 * time.Second)
-					newExpiration = time.Now().Add(time.Hour)
-					creds.Expiration = &expiration
-					client.AssumableRoles[role] = &sts.Credentials{
-						AccessKeyId:     &accessKeyID,
-						Expiration:      &newExpiration,
-						SecretAccessKey: &secretAccessKey,
-						SessionToken:    &sessionToken,
-					}
-				})
-
-				It("Refreshes them", func() {
-					creds, err := subject.CredentialsForRole(role)
-					Expect(creds).ToNot(BeNil())
-					Expect(err).To(BeNil())
-					Expect(*creds.AccessKeyId).To(Equal(accessKeyID))
-					Expect(*creds.SecretAccessKey).To(Equal(secretAccessKey))
-					Expect(*creds.Expiration).To(Equal(newExpiration))
-					Expect(*creds.SessionToken).To(Equal(sessionToken))
-				})
-			})
-
-			Context("And they are fresh", func() {
-				JustBeforeEach(func() {
-					expiration = time.Now().Add(5 * time.Hour)
-					creds.Expiration = &expiration
-				})
-
-				It("Returns the credentials", func() {
-					creds, err := subject.CredentialsForRole(role)
-					Expect(creds).ToNot(BeNil())
-					Expect(err).To(BeNil())
-					Expect(*creds.AccessKeyId).To(Equal(accessKeyID))
-					Expect(*creds.SecretAccessKey).To(Equal(secretAccessKey))
-					Expect(*creds.Expiration).To(Equal(expiration))
-					Expect(*creds.SessionToken).To(Equal(sessionToken))
-				})
+			It("Returns the credentials", func() {
+				err := subject.RefreshCredentialIfStale(role)
+				Expect(err).To(BeNil())
+				creds, err := subject.CredentialsForRole(role)
+				Expect(creds).ToNot(BeNil())
+				Expect(err).To(BeNil())
+				Expect(*creds.AccessKeyId).To(Equal(accessKeyID))
+				Expect(*creds.SecretAccessKey).To(Equal(secretAccessKey))
+				Expect(*creds.Expiration).To(Equal(expiration))
+				Expect(*creds.SessionToken).To(Equal(sessionToken))
 			})
 		})
 	})
@@ -153,8 +89,9 @@ var _ = Describe("CredentialStore", func() {
 
 		JustBeforeEach(func() {
 			client.AssumableRoles[role] = creds
-			_, _ = subject.CredentialsForRole(role)
+			_ = subject.RefreshCredentialIfStale(role)
 			client.AssumableRoles[role] = newCreds
+			_ = subject.RefreshCredentialIfStale(role)
 		})
 
 		It("Refreshes each credential in the store", func() {

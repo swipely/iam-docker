@@ -58,7 +58,7 @@ func (job *addContainerJob) Perform() error {
 		return err
 	}
 	job.logger.WithField("iam-role", role).Debug("Fetching IAM Role")
-	_, err = job.credentialStore.CredentialsForRole(role)
+	err = job.credentialStore.RefreshCredentialIfStale(role)
 	if err != nil {
 		return err
 	}

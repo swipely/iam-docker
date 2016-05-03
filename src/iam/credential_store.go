@@ -10,12 +10,7 @@ import (
 )
 
 const (
-	refreshGracePeriod  = time.Minute * 10
-	realTimeGracePeriod = time.Second * 10
-)
-
-var (
-	log = logrus.WithField("prefix", "iam")
+	refreshCredentialGracePeriod = 30 * time.Minute
 )
 
 // NewCredentialStore accepts an STSClient and creates a new cache for assumed
@@ -25,74 +20,85 @@ func NewCredentialStore(client STSClient, seed int64) CredentialStore {
 		client: client,
 		creds:  make(map[string]*sts.Credentials),
 		rng:    rand.New(rand.NewSource(seed)),
+		logger: logrus.WithField("prefix", "iam/credential-store"),
 	}
 }
 
 func (store *credentialStore) CredentialsForRole(arn string) (*sts.Credentials, error) {
-	return store.refreshCredential(arn, realTimeGracePeriod)
+	store.credMutex.RLock()
+	creds, hasKey := store.creds[arn]
+	store.credMutex.RUnlock()
+
+	if !hasKey {
+		return nil, fmt.Errorf("No credentials for role: %s", arn)
+	}
+	return creds, nil
 }
 
-func (store *credentialStore) RefreshCredentials() {
-	log.Info("Refreshing all IAM credentials")
+func (store *credentialStore) AvailableARNs() []string {
 	store.credMutex.RLock()
+	defer store.credMutex.RUnlock()
 	arns := make([]string, len(store.creds))
 	count := 0
 	for arn := range store.creds {
 		arns[count] = arn
 		count++
 	}
-	store.credMutex.RUnlock()
+	return arns
+}
 
-	for _, arn := range arns {
-		_, err := store.refreshCredential(arn, refreshGracePeriod)
+func (store *credentialStore) RefreshCredentials() {
+	store.logger.Info("Refreshing all IAM credentials")
+	for _, arn := range store.AvailableARNs() {
+		err := store.RefreshCredentialIfStale(arn)
 		if err != nil {
-			log.WithFields(logrus.Fields{
+			store.logger.WithFields(logrus.Fields{
 				"role":  arn,
 				"error": err.Error(),
 			}).Warn("Unable to refresh credential")
 		}
 	}
-	log.Info("Done refreshing all IAM credentials")
+	store.logger.Info("Done refreshing all IAM credentials")
 }
 
-func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Duration) (*sts.Credentials, error) {
-	clog := log.WithField("arn", arn)
-	clog.Debug("Checking for stale credential")
+func (store *credentialStore) RefreshCredentialIfStale(arn string) error {
+	logger := store.logger.WithField("arn", arn)
+
 	store.credMutex.RLock()
-	creds, hasKey := store.creds[arn]
+	cred, hasKey := store.creds[arn]
 	store.credMutex.RUnlock()
 
 	if hasKey {
-		if time.Now().Add(gracePeriod).Before(*creds.Expiration) {
-			clog.Debug("Credential is fresh")
-			return creds, nil
+		if time.Now().Add(refreshCredentialGracePeriod).Before(*cred.Expiration) {
+			logger.Debug("Credential is fresh, refusing to refresh")
+			return nil
 		}
-		clog.Debug("Credential is stale, refreshing")
+		logger.Debug("Credential is stale, refreshing")
 	} else {
-		clog.Debug("Credential is not in the store")
+		logger.Debug("Credential is not in the store, fetching")
 	}
 
+	logger.Debug("Refreshing credential")
 	duration := int64(3600)
 	sessionName := store.generateSessionName()
-
 	output, err := store.client.AssumeRole(&sts.AssumeRoleInput{
 		RoleArn:         &arn,
 		DurationSeconds: &duration,
 		RoleSessionName: &sessionName,
 	})
-
 	if err != nil {
-		return nil, err
+		return err
 	} else if output.Credentials == nil {
-		return nil, fmt.Errorf("No credentials returned for: %s", arn)
+		return fmt.Errorf("No credentials returned for: %s", arn)
 	}
 
-	clog.Info("Credential successfully refreshed")
 	store.credMutex.Lock()
 	store.creds[arn] = output.Credentials
 	store.credMutex.Unlock()
 
-	return output.Credentials, nil
+	logger.Info("Credential successfully fetched")
+
+	return nil
 }
 
 func (store *credentialStore) generateSessionName() string {
@@ -117,4 +123,5 @@ type credentialStore struct {
 	rng       *rand.Rand
 	rngMutex  sync.Mutex
 	credMutex sync.RWMutex
+	logger    *logrus.Entry
 }
