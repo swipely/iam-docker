@@ -42,8 +42,7 @@ func (app *App) Run() error {
 	handler := http.NewIAMHandler(proxy, containerStore, credentialStore)
 
 	go app.runJobQueue(jobQueue, errorChan)
-	go app.containerSyncWorker(containerStore, credentialStore)
-	go app.refreshCredentialWorker(credentialStore)
+	go app.scheduleWorker(containerStore, credentialStore, jobQueue)
 	go app.httpWorker(handler, errorChan)
 	go app.eventWorker(eventHandler, errorChan)
 
@@ -51,45 +50,33 @@ func (app *App) Run() error {
 }
 
 func (app *App) runJobQueue(jobQueue queue.JobQueue, errorChan chan error) {
-	logger := log.WithField("worker", "job-queue")
-	logger.Info("Starting")
-
 	for {
 		err := jobQueue.Run()
 		if err != nil {
-			logger.WithField("err", err.Error()).Error("Received error from job queue")
+			log.WithFields(logrus.Fields{
+				"worker": "job-queue",
+				"err":    err.Error(),
+			}).Error("Received error from job queue")
 			errorChan <- err
 			break
 		}
 	}
 }
 
-func (app *App) containerSyncWorker(containerStore docker.ContainerStore, credentialStore iam.CredentialStore) {
-	wlog := log.WithFields(logrus.Fields{"worker": "sync-containers"})
-	wlog.Info("Starting")
+func (app *App) scheduleWorker(containerStore docker.ContainerStore, credentialStore iam.CredentialStore, jobQueue queue.JobQueue) {
+	dockerTimer := timer(app.Config.DockerSyncPeriod)
+	credentialTimer := timer(app.Config.CredentialRefreshPeriod)
 
-	go app.syncRunningContainers(containerStore, credentialStore, wlog)
+	dockerJob := docker.NewSyncContainersJob(app.DockerClient, containerStore, credentialStore, jobQueue)
+	credentialJob := iam.NewRefreshCredentialsJob(credentialStore, jobQueue)
 
-	// Don't sync every minute since we're already listening to Docker events.
-	// This is the default.
-	if app.Config.DockerSyncPeriod == (0 * time.Second) {
-		return
-	}
-
-	timer := time.Tick(app.Config.DockerSyncPeriod)
-	for range timer {
-		go app.syncRunningContainers(containerStore, credentialStore, wlog)
-	}
-}
-
-func (app *App) refreshCredentialWorker(credentialStore iam.CredentialStore) {
-	timer := time.Tick(app.Config.CredentialRefreshPeriod)
-	wlog := log.WithFields(logrus.Fields{"worker": "refresh-credentials"})
-	wlog.Info("Starting")
-
-	for range timer {
-		wlog.Debug("Refreshing credentials")
-		go credentialStore.RefreshCredentials()
+	for {
+		select {
+		case <-dockerTimer:
+			jobQueue.Enqueue(dockerJob)
+		case <-credentialTimer:
+			jobQueue.Enqueue(credentialJob)
+		}
 	}
 }
 
@@ -167,6 +154,19 @@ func (app *App) randomSeed() int64 {
 		return nano
 	}
 	hash := fnv.New64a()
-	hash.Write([]byte(hostname))
+	_, err = hash.Write([]byte(hostname))
+	if err != nil {
+		return nano
+	}
 	return nano ^ int64(hash.Sum64())
+}
+
+func timer(duration time.Duration) <-chan time.Time {
+	if duration == 0 {
+		channel := make(chan time.Time, 1)
+		channel <- time.Now()
+		return channel
+	}
+
+	return time.Tick(duration)
 }
