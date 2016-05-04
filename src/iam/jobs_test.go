@@ -2,6 +2,7 @@ package iam_test
 
 import (
 	"sort"
+	"time"
 
 	"github.com/aws/aws-sdk-go/service/sts"
 
@@ -93,6 +94,7 @@ var _ = Describe("IAM Jobs", func() {
 			It("Enqueues jobs to refresh credentials for each arn in the store", func() {
 				err := job.Perform()
 				Expect(err).To(BeNil())
+				time.Sleep(time.Second)
 				ids := make([]string, len(jobQueue.Jobs))
 				for i, job := range jobQueue.Jobs {
 					ids[i] = job.ID()

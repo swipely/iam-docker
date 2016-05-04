@@ -19,6 +19,7 @@ type Config struct {
 	ListenAddr              string
 	MetaDataUpstream        *url.URL
 	EventHandlers           int
+	QueueSize               int
 	ReadTimeout             time.Duration
 	WriteTimeout            time.Duration
 	DockerSyncPeriod        time.Duration

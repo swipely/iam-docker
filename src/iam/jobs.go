@@ -76,9 +76,14 @@ func (job *refreshCredentialsJob) Backoff(attempt int) time.Duration {
 
 func (job *refreshCredentialsJob) Perform() error {
 	arns := job.credentialStore.AvailableARNs()
+	enqueueChan := make(chan queue.Job, len(arns))
+	go func() {
+		for refreshJob := range enqueueChan {
+			job.jobQueue.Enqueue(refreshJob)
+		}
+	}()
 	for _, arn := range arns {
-		refreshJob := NewRefreshCredentialJob(arn, job.credentialStore)
-		job.jobQueue.Enqueue(refreshJob)
+		enqueueChan <- NewRefreshCredentialJob(arn, job.credentialStore)
 	}
 	return nil
 }

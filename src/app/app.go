@@ -1,16 +1,19 @@
 package app
 
 import (
-	"github.com/Sirupsen/logrus"
-	dockerLib "github.com/fsouza/go-dockerclient"
-	"github.com/swipely/iam-docker/src/docker"
-	"github.com/swipely/iam-docker/src/http"
-	"github.com/swipely/iam-docker/src/iam"
-	"github.com/valyala/fasthttp"
 	"hash/fnv"
 	"net/http/httputil"
 	"os"
 	"time"
+
+	"github.com/swipely/iam-docker/src/docker"
+	"github.com/swipely/iam-docker/src/http"
+	"github.com/swipely/iam-docker/src/iam"
+	"github.com/swipely/iam-docker/src/queue"
+
+	"github.com/Sirupsen/logrus"
+	dockerLib "github.com/fsouza/go-dockerclient"
+	"github.com/valyala/fasthttp"
 )
 
 var (
@@ -31,18 +34,34 @@ func (app *App) Run() error {
 	log.Info("Running the app")
 
 	errorChan := make(chan error)
+	jobQueue := queue.NewPooledJobQueue(app.Config.QueueSize, app.Config.EventHandlers)
 	containerStore := docker.NewContainerStore(app.DockerClient)
 	credentialStore := iam.NewCredentialStore(app.STSClient, app.randomSeed())
 	eventHandler := docker.NewEventHandler(app.Config.EventHandlers, containerStore, credentialStore)
 	proxy := httputil.NewSingleHostReverseProxy(app.Config.MetaDataUpstream)
 	handler := http.NewIAMHandler(proxy, containerStore, credentialStore)
 
+	go app.runJobQueue(jobQueue, errorChan)
 	go app.containerSyncWorker(containerStore, credentialStore)
 	go app.refreshCredentialWorker(credentialStore)
 	go app.httpWorker(handler, errorChan)
 	go app.eventWorker(eventHandler, errorChan)
 
 	return <-errorChan
+}
+
+func (app *App) runJobQueue(jobQueue queue.JobQueue, errorChan chan error) {
+	logger := log.WithField("worker", "job-queue")
+	logger.Info("Starting")
+
+	for {
+		err := jobQueue.Run()
+		if err != nil {
+			logger.WithField("err", err.Error()).Error("Received error from job queue")
+			errorChan <- err
+			break
+		}
+	}
 }
 
 func (app *App) containerSyncWorker(containerStore docker.ContainerStore, credentialStore iam.CredentialStore) {

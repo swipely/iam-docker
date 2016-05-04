@@ -1,6 +1,8 @@
 package docker_test
 
 import (
+	"time"
+
 	"github.com/aws/aws-sdk-go/service/sts"
 	dockerLib "github.com/fsouza/go-dockerclient"
 
@@ -198,6 +200,7 @@ var _ = Describe("Docker Jobs", func() {
 				It("Enqueues a new addContainerJob for each container", func() {
 					err := job.Perform()
 					Expect(err).To(BeNil())
+					time.Sleep(time.Second)
 					Expect(len(jobQueue.Jobs)).To(Equal(2))
 					Expect(jobQueue.Jobs[0].ID()).To(Equal("docker/add-container/0123"))
 					Expect(jobQueue.Jobs[1].ID()).To(Equal("docker/add-container/4567"))

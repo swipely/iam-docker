@@ -157,13 +157,18 @@ func (job *syncContainersJob) Perform() error {
 		"containers",
 		len(containers),
 	).Debug("Enqueueing add container jobs")
+	enqueueChan := make(chan queue.Job, len(containers))
+	go func() {
+		for addJob := range enqueueChan {
+			job.queue.Enqueue(addJob)
+		}
+	}()
 	for _, container := range containers {
-		addJob := NewAddContainerJob(
+		enqueueChan <- NewAddContainerJob(
 			container.ID,
 			job.containerStore,
 			job.credentialStore,
 		)
-		job.queue.Enqueue(addJob)
 	}
 	return nil
 }

@@ -19,6 +19,7 @@ var (
 	writeTimeout            = flag.Duration("write-timeout", time.Minute, "Write timeout of the HTTP server")
 	metadata                = flag.String("meta-data-api", "http://169.254.169.254:80", "Address of the EC2 MetaData API")
 	eventHandlers           = flag.Int("event-handlers", 4, "Number of workers listening to the Docker Events channel")
+	queueSize               = flag.Int("queue-size", 10000, "Size of the event queue")
 	dockerSyncPeriod        = flag.Duration("docker-sync-period", 0*time.Second, "Frequency of Docker Container sync; default is never")
 	credentialRefreshPeriod = flag.Duration("credential-refresh-period", time.Minute, "Frequency of the IAM credential sync")
 	verbose                 = flag.Bool("verbose", false, "Enable verbose logging")
@@ -47,6 +48,7 @@ func main() {
 		ListenAddr:              *listenAddr,
 		MetaDataUpstream:        metaDataUpstream,
 		EventHandlers:           *eventHandlers,
+		QueueSize:               *queueSize,
 		ReadTimeout:             *readTimeout,
 		WriteTimeout:            *writeTimeout,
 		DockerSyncPeriod:        *dockerSyncPeriod,
