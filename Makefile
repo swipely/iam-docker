@@ -10,10 +10,12 @@ EXE_NAME=iam-docker
 EXE=$(DIST)/$(EXE_NAME)
 CACERT=$(DIST)/ca-certificates.crt
 CACERT_SRC=https://curl.haxx.se/ca/cacert.pem
+VERSION_FILE=VERSION
+VERSION=$(shell cat $(VERSION_FILE))
 DOCKER=docker
 DOCKER_BUILD_IMAGE_NAME=swipely/iam-docker-build
 DOCKER_RELEASE_IMAGE_NAME=swipely/iam-docker
-DOCKER_TAG=$(shell git rev-parse --quiet --short HEAD)
+DOCKER_TAG=$(VERSION)
 DOCKER_BUILD_IMAGE=$(DOCKER_BUILD_IMAGE_NAME):$(DOCKER_TAG)
 DOCKER_RELEASE_IMAGE=$(DOCKER_RELEASE_IMAGE_NAME):$(DOCKER_TAG)
 DOCKER_RELEASE_IMAGE_LATEST=$(DOCKER_RELEASE_IMAGE_NAME):latest
@@ -41,6 +43,8 @@ test-in-docker: docker-build
 	$(DOCKER) run $(DOCKER_BUILD_IMAGE) make test
 
 release: docker
+	git tag $(VERSION)
+	git push origin --tags
 	docker push $(DOCKER_RELEASE_IMAGE)
 	docker push $(DOCKER_RELEASE_IMAGE_LATEST)
 
