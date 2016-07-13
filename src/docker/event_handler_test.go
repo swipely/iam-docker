@@ -50,9 +50,15 @@ var _ = Describe("EventHandler", func() {
 					id = "CA55E77E"
 					ip = "172.17.0.2"
 					_ = dockerClient.AddContainer(&docker.Container{
-						ID:              id,
-						Config:          &docker.Config{Labels: map[string]string{}},
-						NetworkSettings: &docker.NetworkSettings{IPAddress: ip},
+						ID:     id,
+						Config: &docker.Config{Labels: map[string]string{}},
+						NetworkSettings: &docker.NetworkSettings{
+							Networks: map[string]docker.ContainerNetwork{
+								"bridge": docker.ContainerNetwork{
+									IPAddress: ip,
+								},
+							},
+						},
 					})
 				})
 
@@ -83,9 +89,15 @@ var _ = Describe("EventHandler", func() {
 						SessionToken:    &sessionToken,
 					}
 					_ = dockerClient.AddContainer(&docker.Container{
-						ID:              id,
-						Config:          &docker.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
-						NetworkSettings: &docker.NetworkSettings{IPAddress: ip},
+						ID:     id,
+						Config: &docker.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
+						NetworkSettings: &docker.NetworkSettings{
+							Networks: map[string]docker.ContainerNetwork{
+								"bridge": docker.ContainerNetwork{
+									IPAddress: ip,
+								},
+							},
+						},
 					})
 				})
 

@@ -29,9 +29,15 @@ var _ = Describe("ContainerStore", func() {
 		Context("But it does not have an IAM role set", func() {
 			BeforeEach(func() {
 				err := client.AddContainer(&dockerClient.Container{
-					ID:              id,
-					Config:          &dockerClient.Config{Labels: map[string]string{}},
-					NetworkSettings: &dockerClient.NetworkSettings{IPAddress: ip},
+					ID:     id,
+					Config: &dockerClient.Config{Labels: map[string]string{}},
+					NetworkSettings: &dockerClient.NetworkSettings{
+						Networks: map[string]dockerClient.ContainerNetwork{
+							"bridge": dockerClient.ContainerNetwork{
+								IPAddress: ip,
+							},
+						},
+					},
 				})
 				Expect(err).To(BeNil())
 			})
@@ -50,23 +56,58 @@ var _ = Describe("ContainerStore", func() {
 				role = "arn:aws:iam::012345678901:role/test"
 			)
 
-			BeforeEach(func() {
-				err := client.AddContainer(&dockerClient.Container{
-					ID: id,
-					Config: &dockerClient.Config{
-						Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role},
-					},
-					NetworkSettings: &dockerClient.NetworkSettings{IPAddress: ip},
+			Context("But it does not have an IP set", func() {
+				BeforeEach(func() {
+					err := client.AddContainer(&dockerClient.Container{
+						ID: id,
+						Config: &dockerClient.Config{
+							Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role},
+						},
+						NetworkSettings: &dockerClient.NetworkSettings{
+							Networks: map[string]dockerClient.ContainerNetwork{
+								"bridge": dockerClient.ContainerNetwork{
+									IPAddress: "",
+								},
+							},
+						},
+					})
+					Expect(err).To(BeNil())
 				})
-				Expect(err).To(BeNil())
+
+				It("Does not add the container to the store", func() {
+					err := subject.AddContainerByID(id)
+					Expect(err).ToNot(BeNil())
+					role, err := subject.IAMRoleForID(id)
+					Expect(role).To(Equal(""))
+					Expect(err).ToNot(BeNil())
+				})
 			})
 
-			It("Adds the container to the store", func() {
-				err := subject.AddContainerByID(id)
-				Expect(err).To(BeNil())
-				actual, err := subject.IAMRoleForID(id)
-				Expect(actual).To(Equal(role))
-				Expect(err).To(BeNil())
+			Context("And it has an IP set", func() {
+				BeforeEach(func() {
+					err := client.AddContainer(&dockerClient.Container{
+						ID: id,
+						Config: &dockerClient.Config{
+							Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role},
+						},
+						NetworkSettings: &dockerClient.NetworkSettings{
+							Networks: map[string]dockerClient.ContainerNetwork{
+								"bridge": dockerClient.ContainerNetwork{
+									IPAddress: ip,
+								},
+							},
+						},
+					})
+					Expect(err).To(BeNil())
+				})
+
+				It("Adds the container to the store", func() {
+					err := subject.AddContainerByID(id)
+					Expect(err).To(BeNil())
+					actual, err := subject.IAMRoleForID(id)
+					Expect(actual).To(Equal(role))
+					Expect(err).To(BeNil())
+				})
 			})
 		})
 	})
@@ -78,19 +119,37 @@ var _ = Describe("ContainerStore", func() {
 
 		BeforeEach(func() {
 			_ = client.AddContainer(&dockerClient.Container{
-				ID:              "DEADBEEF",
-				Config:          &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/alpha"}},
-				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.2"},
+				ID:     "DEADBEEF",
+				Config: &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/alpha"}},
+				NetworkSettings: &dockerClient.NetworkSettings{
+					Networks: map[string]dockerClient.ContainerNetwork{
+						"bridge": dockerClient.ContainerNetwork{
+							IPAddress: "172.0.0.2",
+						},
+					},
+				},
 			})
 			_ = client.AddContainer(&dockerClient.Container{
-				ID:              "FEEDABEE",
-				Config:          &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/beta"}},
-				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.3"},
+				ID:     "FEEDABEE",
+				Config: &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/beta"}},
+				NetworkSettings: &dockerClient.NetworkSettings{
+					Networks: map[string]dockerClient.ContainerNetwork{
+						"bridge": dockerClient.ContainerNetwork{
+							IPAddress: "172.0.0.3",
+						},
+					},
+				},
 			})
 			_ = client.AddContainer(&dockerClient.Container{
-				ID:              "CA55E77E",
-				Config:          &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/alpha"}},
-				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.4"},
+				ID:     "CA55E77E",
+				Config: &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/alpha"}},
+				NetworkSettings: &dockerClient.NetworkSettings{
+					Networks: map[string]dockerClient.ContainerNetwork{
+						"bridge": dockerClient.ContainerNetwork{
+							IPAddress: "172.0.0.4",
+						},
+					},
+				},
 			})
 			_ = subject.SyncRunningContainers()
 		})
@@ -123,9 +182,15 @@ var _ = Describe("ContainerStore", func() {
 
 			BeforeEach(func() {
 				_ = client.AddContainer(&dockerClient.Container{
-					ID:              id,
-					Config:          &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
-					NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.2"},
+					ID:     id,
+					Config: &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
+					NetworkSettings: &dockerClient.NetworkSettings{
+						Networks: map[string]dockerClient.ContainerNetwork{
+							"bridge": dockerClient.ContainerNetwork{
+								IPAddress: "172.0.0.2",
+							},
+						},
+					},
 				})
 				_ = subject.SyncRunningContainers()
 			})
@@ -140,14 +205,18 @@ var _ = Describe("ContainerStore", func() {
 
 	Describe("IAMRoleForIP", func() {
 		const (
-			id   = "CA75EA75"
-			ip   = "172.0.0.99"
-			role = "arn:aws:iam::012345678901:role/s3-rw"
+			id    = "CA75EA75"
+			ipOne = "172.0.0.99"
+			ipTwo = "173.0.0.98"
+			role  = "arn:aws:iam::012345678901:role/s3-rw"
 		)
 
 		Context("When the IP is not stored", func() {
 			It("Returns an error", func() {
-				actual, err := subject.IAMRoleForIP(ip)
+				actual, err := subject.IAMRoleForIP(ipOne)
+				Expect(actual).To(Equal(""))
+				Expect(err).ToNot(BeNil())
+				actual, err = subject.IAMRoleForIP(ipTwo)
 				Expect(actual).To(Equal(""))
 				Expect(err).ToNot(BeNil())
 			})
@@ -156,15 +225,27 @@ var _ = Describe("ContainerStore", func() {
 		Context("When the IP is stored", func() {
 			BeforeEach(func() {
 				_ = client.AddContainer(&dockerClient.Container{
-					ID:              id,
-					Config:          &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
-					NetworkSettings: &dockerClient.NetworkSettings{IPAddress: ip},
+					ID:     id,
+					Config: &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
+					NetworkSettings: &dockerClient.NetworkSettings{
+						Networks: map[string]dockerClient.ContainerNetwork{
+							"bridge": dockerClient.ContainerNetwork{
+								IPAddress: "172.0.0.99",
+							},
+							"other": dockerClient.ContainerNetwork{
+								IPAddress: "173.0.0.98",
+							},
+						},
+					},
 				})
 				_ = subject.SyncRunningContainers()
 			})
 
 			It("Returns the IAM role", func() {
-				actual, err := subject.IAMRoleForIP(ip)
+				actual, err := subject.IAMRoleForIP(ipOne)
+				Expect(actual).To(Equal(role))
+				Expect(err).To(BeNil())
+				actual, err = subject.IAMRoleForIP(ipTwo)
 				Expect(actual).To(Equal(role))
 				Expect(err).To(BeNil())
 			})
@@ -193,9 +274,15 @@ var _ = Describe("ContainerStore", func() {
 		Context("When the ID is stored", func() {
 			BeforeEach(func() {
 				_ = client.AddContainer(&dockerClient.Container{
-					ID:              id,
-					Config:          &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
-					NetworkSettings: &dockerClient.NetworkSettings{IPAddress: ip},
+					ID:     id,
+					Config: &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
+					NetworkSettings: &dockerClient.NetworkSettings{
+						Networks: map[string]dockerClient.ContainerNetwork{
+							"bridge": dockerClient.ContainerNetwork{
+								IPAddress: ip,
+							},
+						},
+					},
 				})
 				_ = subject.SyncRunningContainers()
 			})
@@ -215,19 +302,37 @@ var _ = Describe("ContainerStore", func() {
 	Describe("SyncRunningContainers", func() {
 		BeforeEach(func() {
 			_ = client.AddContainer(&dockerClient.Container{
-				ID:              "38BE1290",
-				Config:          &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/reader"}},
-				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.15"},
+				ID:     "38BE1290",
+				Config: &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/reader"}},
+				NetworkSettings: &dockerClient.NetworkSettings{
+					Networks: map[string]dockerClient.ContainerNetwork{
+						"bridge": dockerClient.ContainerNetwork{
+							IPAddress: "172.0.0.15",
+						},
+					},
+				},
 			})
 			_ = client.AddContainer(&dockerClient.Container{
-				ID:              "EF10A722",
-				Config:          &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/writer"}},
-				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.16"},
+				ID:     "EF10A722",
+				Config: &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/writer"}},
+				NetworkSettings: &dockerClient.NetworkSettings{
+					Networks: map[string]dockerClient.ContainerNetwork{
+						"bridge": dockerClient.ContainerNetwork{
+							IPAddress: "172.0.0.16",
+						},
+					},
+				},
 			})
 			_ = client.AddContainer(&dockerClient.Container{
-				ID:              "F00DF00D",
-				Config:          &dockerClient.Config{Labels: map[string]string{}},
-				NetworkSettings: &dockerClient.NetworkSettings{IPAddress: "172.0.0.17"},
+				ID:     "F00DF00D",
+				Config: &dockerClient.Config{Labels: map[string]string{}},
+				NetworkSettings: &dockerClient.NetworkSettings{
+					Networks: map[string]dockerClient.ContainerNetwork{
+						"bridge": dockerClient.ContainerNetwork{
+							IPAddress: "172.0.0.17",
+						},
+					},
+				},
 			})
 		})
 

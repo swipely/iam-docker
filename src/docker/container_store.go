@@ -39,12 +39,17 @@ func (store *containerStore) AddContainerByID(id string) error {
 		return err
 	}
 
-	logger.WithFields(logrus.Fields{
-		"ip":   config.ip,
-		"role": config.iamRole,
-	}).Debug("Adding new container")
+	for _, ip := range config.ips {
+		logger.WithFields(logrus.Fields{
+			"ip":   ip,
+			"role": config.iamRole,
+		}).Debug("Adding new container")
+	}
+
 	store.mutex.Lock()
-	store.containerIDsByIP[config.ip] = config.id
+	for _, ip := range config.ips {
+		store.containerIDsByIP[ip] = config.id
+	}
 	store.configByContainerID[config.id] = *config
 	store.mutex.Unlock()
 
@@ -112,7 +117,9 @@ func (store *containerStore) RemoveContainer(id string) {
 	if hasKey {
 		log.WithField("id", id).Debug("Removing container")
 		store.mutex.Lock()
-		delete(store.containerIDsByIP, config.ip)
+		for _, ip := range config.ips {
+			delete(store.containerIDsByIP, ip)
+		}
 		delete(store.configByContainerID, id)
 		store.mutex.Unlock()
 	}
@@ -137,12 +144,14 @@ func (store *containerStore) SyncRunningContainers() error {
 	for _, container := range apiContainers {
 		config, err := store.findConfigForID(container.ID)
 		if err == nil {
-			log.WithFields(logrus.Fields{
-				"id":   config.id,
-				"ip":   config.ip,
-				"role": config.iamRole,
-			}).Debug("Adding new container")
-			store.containerIDsByIP[config.ip] = config.id
+			for _, ip := range config.ips {
+				log.WithFields(logrus.Fields{
+					"id":   config.id,
+					"ip":   ip,
+					"role": config.iamRole,
+				}).Debug("Adding new container")
+				store.containerIDsByIP[ip] = config.id
+			}
 			store.configByContainerID[config.id] = *config
 		}
 	}
@@ -168,10 +177,22 @@ func (store *containerStore) findConfigForID(id string) (*containerConfig, error
 	if !hasKey {
 		return nil, fmt.Errorf("Unable to find label named '%s' for container: %s", iamLabel, id)
 	}
-	ip := container.NetworkSettings.IPAddress
+
+	ips := make([]string, 0, 2)
+	for _, network := range container.NetworkSettings.Networks {
+		ip := network.IPAddress
+		if ip != "" {
+			ips = append(ips, ip)
+		}
+	}
+
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("Unable to find IP address for container: %s", id)
+	}
+
 	config := &containerConfig{
 		id:      id,
-		ip:      ip,
+		ips:     ips,
 		iamRole: iamRole,
 	}
 
@@ -218,7 +239,7 @@ func withRetries(lambda func() error) error {
 
 type containerConfig struct {
 	id      string
-	ip      string
+	ips     []string
 	iamRole string
 }
 
