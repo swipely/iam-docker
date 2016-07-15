@@ -47,14 +47,14 @@ It's likely that Docker updated the output of `docker network inspect`.
 Forward requests coming from your Docker network(s) to the running agent:
 
 ```bash
-# iptables -t nat \
-           -I PREROUTING \
-           -p tcp \
-           -d 169.254.169.254 \
-           --dport 80 \
-           -j DNAT \
-           --to-destination "$GATEWAY:$PORT" \
-           -i "$INTERFACE"
+$ sudo iptables -t nat \
+                -I PREROUTING \
+                -p tcp \
+                -d 169.254.169.254 \
+                --dport 80 \
+                -j DNAT \
+                --to-destination "$GATEWAY:$PORT" \
+                -i "$INTERFACE"
 ```
 
 When starting containers, set their `com.swipely.iam-docker.iam-profile` label:
