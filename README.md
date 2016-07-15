@@ -36,14 +36,25 @@ Note that this can be done for an arbitrary number of networks.
 
 ```bash
 $ export NETWORK="bridge"
-$ export GATEWAY="$(docker network inspect "$NETWORK" | grep Gateway | cut -d '"' -f 4)"
-$ export INTERFACE="br-$(docker network inspect "$NETWORK" | grep Id | cut -d '"' -f 4 | head -c 12)"
+$ export PORT="8080"
+$ export INTERFACE="$(docker network inspect -f '{{index .Options "com.docker.network.bridge.name"}}' "$NETWORK")"
+$ export GATEWAY="$(ip addr show "$INTERFACE" | grep 'inet ' | awk '{print $2}' | cut -d / -f 1 | head -n 1)"
 ```
+
+Note: if any of the above commands don't work, please open an issue.
+It's likely that Docker updated the output of `docker network inspect`.
 
 Forward requests coming from your Docker network(s) to the running agent:
 
 ```bash
-$ iptables -t nat -I PREROUTING -p tcp -d 169.254.169.254 --dport 80 -j DNAT --to-destination "$GATEWAY":8080 -i "$INTERFACE"
+# iptables -t nat \
+           -I PREROUTING \
+           -p tcp \
+           -d 169.254.169.254 \
+           --dport 80 \
+           -j DNAT \
+           --to-destination "$GATEWAY:$PORT" \
+           -i "$INTERFACE"
 ```
 
 When starting containers, set their `com.swipely.iam-docker.iam-profile` label:
