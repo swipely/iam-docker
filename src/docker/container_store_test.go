@@ -51,7 +51,7 @@ var _ = Describe("ContainerStore", func() {
 			})
 		})
 
-		Context("And it has an IAM role set", func() {
+		Context("And it has an IAM role set via label", func() {
 			const (
 				role = "arn:aws:iam::012345678901:role/test"
 			)
@@ -89,6 +89,68 @@ var _ = Describe("ContainerStore", func() {
 						ID: id,
 						Config: &dockerClient.Config{
 							Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role},
+						},
+						NetworkSettings: &dockerClient.NetworkSettings{
+							Networks: map[string]dockerClient.ContainerNetwork{
+								"bridge": dockerClient.ContainerNetwork{
+									IPAddress: ip,
+								},
+							},
+						},
+					})
+					Expect(err).To(BeNil())
+				})
+
+				It("Adds the container to the store", func() {
+					err := subject.AddContainerByID(id)
+					Expect(err).To(BeNil())
+					actual, err := subject.IAMRoleForID(id)
+					Expect(actual).To(Equal(role))
+					Expect(err).To(BeNil())
+				})
+			})
+		})
+
+		Context("And it has an IAM role set via environment variable", func() {
+			const (
+				role = "arn:aws:iam::012345678901:role/test"
+			)
+
+			Context("But it does not have an IP set", func() {
+				BeforeEach(func() {
+					err := client.AddContainer(&dockerClient.Container{
+						ID: id,
+						Config: &dockerClient.Config{
+							Labels: map[string]string{},
+							Env:    []string{"IAM_ROLE=" + role},
+						},
+						NetworkSettings: &dockerClient.NetworkSettings{
+							Networks: map[string]dockerClient.ContainerNetwork{
+								"bridge": dockerClient.ContainerNetwork{
+									IPAddress: "",
+								},
+							},
+						},
+					})
+					Expect(err).To(BeNil())
+				})
+
+				It("Does not add the container to the store", func() {
+					err := subject.AddContainerByID(id)
+					Expect(err).ToNot(BeNil())
+					role, err := subject.IAMRoleForID(id)
+					Expect(role).To(Equal(""))
+					Expect(err).ToNot(BeNil())
+				})
+			})
+
+			Context("And it has an IP set", func() {
+				BeforeEach(func() {
+					err := client.AddContainer(&dockerClient.Container{
+						ID: id,
+						Config: &dockerClient.Config{
+							Labels: map[string]string{},
+							Env:    []string{"IAM_ROLE=" + role},
 						},
 						NetworkSettings: &dockerClient.NetworkSettings{
 							Networks: map[string]dockerClient.ContainerNetwork{
