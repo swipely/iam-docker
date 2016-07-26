@@ -31,6 +31,8 @@ $ docker pull swipely/iam-docker:latest
 $ docker run --volume /var/run/docker.sock:/var/run/docker.sock --restart=always --net=host swipely/iam-docker:latest
 ```
 
+For use outside EC2, set up an IAM user that can assume the appropriate roles, generate API credentials for that user, and pass those credentials to `iam-docker` via the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables. If your containers require access to other parts of the EC2 metadata API, use `iam-docker -meta-data-api http://<target>` to proxy to the mock metadata service of your choosing.
+
 Determine the gateway IP and network interface of the Docker network you'd like to proxy (default is `bridge`).
 Note that this can be done for an arbitrary number of networks.
 
@@ -74,8 +76,6 @@ If the request is for IAM credentials, the application intercepts that and deter
 Otherwise, it acts as a reverse proxy to the real metadata API.
 
 All credentials are kept fresh, so there should be minimal latency when making API requests.
-
-For use outside EC2, specify credentials via the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables. If access to the rest of the EC2 metadata API is required, use `iam-docker -meta-data-api http://<target>` to proxy to the mock metadata service of your choosing.
 
 ## Development
 
