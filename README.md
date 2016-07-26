@@ -16,7 +16,7 @@ Developers must then choose between running one cluster with a wide set of permi
 The former allows you to run multiple applications on a single instance at the cost of security, while the later is optimally secure at the cost of instance count.
 Using `iam-docker`, a single server can run multiple applications without paying a security penalty.
 
-Note that `iam-docker` doesn't necessarily need to be used with ECS -- any EC2 instance running Docker can run use it.
+Note that `iam-docker` doesn't necessarily need to be used with ECS – or even EC2. Any machine running Docker can run use it.
 
 ## Usage
 
@@ -30,6 +30,8 @@ Start an EC2 instance with that role, then pull and run the image:
 $ docker pull swipely/iam-docker:latest
 $ docker run --volume /var/run/docker.sock:/var/run/docker.sock --restart=always --net=host swipely/iam-docker:latest
 ```
+
+For use outside EC2, set up an IAM user that can assume the appropriate roles, generate API credentials for that user, and pass those credentials to `iam-docker` via the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables. If your containers require access to other parts of the EC2 metadata API, use `iam-docker -meta-data-api http://<target>` to proxy to the mock metadata service of your choosing.
 
 Determine the gateway IP and network interface of the Docker network you'd like to proxy (default is `bridge`).
 Note that this can be done for an arbitrary number of networks.
