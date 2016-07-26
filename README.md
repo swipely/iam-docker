@@ -65,6 +65,14 @@ $ export PROFILE="arn:aws:iam::1234123412:role/some-role"
 $ docker run --label com.swipely.iam-docker.iam-profile="$PROFILE" "$IMAGE"
 ```
 
+Alternately, set the `IAM_ROLE` environment variable:
+
+```bash
+$ export IMAGE="ubuntu:latest"
+$ export PROFILE="arn:aws:iam::1234123412:role/some-role"
+$ docker run -e IAM_ROLE="$PROFILE" "$IMAGE"
+```
+
 ## How it works
 
 The application listens to the [Docker events stream](https://docs.docker.com/engine/reference/commandline/events/) for container start events.

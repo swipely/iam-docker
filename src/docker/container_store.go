@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	iamLabel             = "com.swipely.iam-docker.iam-profile"
-	retrySleepBase       = time.Second
-	retrySleepMultiplier = 2
-	maxRetries           = 3
+	iamLabel               = "com.swipely.iam-docker.iam-profile"
+	iamEnvironmentVariable = "IAM_ROLE"
+	retrySleepBase         = time.Second
+	retrySleepMultiplier   = 2
+	maxRetries             = 3
 )
 
 var (
@@ -173,9 +174,15 @@ func (store *containerStore) findConfigForID(id string) (*containerConfig, error
 		return nil, fmt.Errorf("Container has no network settings: %s", id)
 	}
 
-	iamRole, hasKey := container.Config.Labels[iamLabel]
-	if !hasKey {
-		return nil, fmt.Errorf("Unable to find label named '%s' for container: %s", iamLabel, id)
+	iamRole, hasLabel := container.Config.Labels[iamLabel]
+	if !hasLabel {
+		env := dockerClient.Env(container.Config.Env)
+		envRole := env.Get(iamEnvironmentVariable)
+		if envRole != "" {
+			iamRole = envRole
+		} else {
+			return nil, fmt.Errorf("Unable to find label named '%s' or environment variable '%s' for container: %s", iamLabel, iamEnvironmentVariable, id)
+		}
 	}
 
 	ips := make([]string, 0, 2)
