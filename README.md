@@ -33,14 +33,13 @@ $ docker run --volume /var/run/docker.sock:/var/run/docker.sock --restart=always
 
 For use outside EC2, set up an IAM user that can assume the appropriate roles, generate API credentials for that user, and pass those credentials to `iam-docker` via the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables. If your containers require access to other parts of the EC2 metadata API, use `iam-docker -meta-data-api http://<target>` to proxy to the mock metadata service of your choosing.
 
-Determine the gateway IP and network interface of the Docker network you'd like to proxy (default is `bridge`).
+Determine the network interface of the Docker network you'd like to proxy (default is `bridge`).
 Note that this can be done for an arbitrary number of networks.
 
 ```bash
 $ export NETWORK="bridge"
 $ export PORT="8080"
 $ export INTERFACE="$(docker network inspect -f '{{index .Options "com.docker.network.bridge.name"}}' "$NETWORK")"
-$ export GATEWAY="$(ip addr show "$INTERFACE" | grep 'inet ' | awk '{print $2}' | cut -d / -f 1 | head -n 1)"
 ```
 
 Note: if any of the above commands don't work, please open an issue.
@@ -54,8 +53,8 @@ $ sudo iptables -t nat \
                 -p tcp \
                 -d 169.254.169.254 \
                 --dport 80 \
-                -j DNAT \
-                --to-destination "$GATEWAY:$PORT" \
+                -j REDIRECT \
+                --to-ports "$PORT" \
                 -i "$INTERFACE"
 ```
 
