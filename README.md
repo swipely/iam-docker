@@ -16,7 +16,7 @@ Developers must then choose between running one cluster with a wide set of permi
 The former allows you to run multiple applications on a single instance at the cost of security, while the later is optimally secure at the cost of instance count.
 Using `iam-docker`, a single server can run multiple applications without paying a security penalty.
 
-Note that `iam-docker` doesn't necessarily need to be used with ECS -- any EC2 instance running Docker can run use it.
+Note that `iam-docker` doesn't necessarily need to be used with ECS – or even EC2. Any machine running Docker can run use it.
 
 ## Usage
 
@@ -74,6 +74,8 @@ If the request is for IAM credentials, the application intercepts that and deter
 Otherwise, it acts as a reverse proxy to the real metadata API.
 
 All credentials are kept fresh, so there should be minimal latency when making API requests.
+
+For use outside EC2, specify credentials via the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables. If access to the rest of the EC2 metadata API is required, use `iam-docker -meta-data-api http://<target>` to proxy to the mock metadata service of your choosing.
 
 ## Development
 
