@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## Next
+## v1.1.0
+
+* Support IAM profiles specified via environment variables (@willglynn)
 
 ## v1.0.0
 
