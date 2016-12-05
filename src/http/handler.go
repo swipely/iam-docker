@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"os"
 )
 
 const (
@@ -18,6 +19,7 @@ const (
 	credentialType = "AWS-HMAC"
 	credentialCode = "Success"
 	iamPath        = "/meta-data/iam/security-credentials/"
+	upstreamEnvVar = "DISABLE_UPSTREAM"
 )
 
 var (
@@ -49,6 +51,8 @@ func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 		"remoteAddr": addr,
 	})
 
+	upstreamDisabledOpt := os.Getenv(upstreamEnvVar)
+
 	if method == iamMethod {
 		idx := strings.LastIndex(path, iamPath)
 		if idx == (len(path) - len(iamPath)) {
@@ -59,7 +63,15 @@ func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 			logger.Info("Serving IAM credentials request")
 			handler.serveIAMRequest(ctx, addr, path, logger)
 			return
+		} else if (upstreamDisabledOpt == "true") {
+			logger.Info("Denying non-IAM endpoint request")
+			handler.serveDeniedRequest(ctx, addr, path, logger)
+			return
 		}
+	} else if (upstreamDisabledOpt == "true") {
+		logger.Info("Denying non-IAM endpoint request")
+		handler.serveDeniedRequest(ctx, addr, path, logger)
+		return
 	}
 
 	logger.Debug("Delegating request upstream")
@@ -110,6 +122,11 @@ func (handler *httpHandler) serveListCredentialsRequest(ctx *fasthttp.RequestCtx
 	}
 	idx := strings.LastIndex(*role, "/")
 	ctx.SetBodyString((*role)[idx+1:])
+	logger.Debug("Successfully responded")
+}
+
+func (handler *httpHandler) serveDeniedRequest(ctx *fasthttp.RequestCtx, addr string, path string, logger *logrus.Entry) {
+	ctx.SetStatusCode(403)
 	logger.Debug("Successfully responded")
 }
 
