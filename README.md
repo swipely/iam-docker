@@ -74,13 +74,15 @@ $ export PROFILE="arn:aws:iam::1234123412:role/some-role"
 $ docker run -e IAM_ROLE="$PROFILE" "$IMAGE"
 ```
 
+Additionally, you can pass the `DISABLE_UPSTREAM` environment variable, set to `true` to have the proxy deny requests to all non-metadata endpoints.
+
 ## How it works
 
 The application listens to the [Docker events stream](https://docs.docker.com/engine/reference/commandline/events/) for container start events.
 When a container is started with an `com.swipely.iam-docker.iam-profile` label, the application assumes that role (if possible).
 When the container makes an [EC2 Metadata API](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html) EC2 metadata API request, it's forwarded to the application because of the `iptables` rule above.
 If the request is for IAM credentials, the application intercepts that and determines which credentials should be passed back to the container.
-Otherwise, it acts as a reverse proxy to the real metadata API.
+Otherwise, it acts as a reverse proxy to the real metadata API, unless the `DISABLE_UPSTREAM` environment variable is set to `true`.
 
 All credentials are kept fresh, so there should be minimal latency when making API requests.
 
