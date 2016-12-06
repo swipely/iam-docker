@@ -35,7 +35,7 @@ func (app *App) Run() error {
 	credentialStore := iam.NewCredentialStore(app.STSClient, app.randomSeed())
 	eventHandler := docker.NewEventHandler(app.Config.EventHandlers, containerStore, credentialStore)
 	proxy := httputil.NewSingleHostReverseProxy(app.Config.MetaDataUpstream)
-	handler := http.NewIAMHandler(proxy, containerStore, credentialStore)
+	handler := http.NewIAMHandler(proxy, containerStore, credentialStore, app.Config.DisableUpstream)
 
 	go app.containerSyncWorker(containerStore, credentialStore)
 	go app.refreshCredentialWorker(credentialStore)

@@ -19,7 +19,6 @@ const (
 	credentialType = "AWS-HMAC"
 	credentialCode = "Success"
 	iamPath        = "/meta-data/iam/security-credentials/"
-	upstreamEnvVar = "DISABLE_UPSTREAM"
 )
 
 var (
@@ -30,7 +29,7 @@ var (
 // When the request is for the IAM path, it looks up the IAM role in the
 // container store and fetches those credentials. Otherwise, it acts as a
 // reverse proxy for the real API.
-func NewIAMHandler(upstream http.Handler, containerStore docker.ContainerStore, credentialStore iam.CredentialStore) fasthttp.RequestHandler {
+func NewIAMHandler(upstream http.Handler, containerStore docker.ContainerStore, credentialStore iam.CredentialStore, disableUpstream bool) fasthttp.RequestHandler {
 	handler := &httpHandler{
 		upstreamHandler: adaptor.NewFastHTTPHandler(upstream),
 		containerStore:  containerStore,
@@ -51,8 +50,6 @@ func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 		"remoteAddr": addr,
 	})
 
-	upstreamDisabledOpt := os.Getenv(upstreamEnvVar)
-
 	if method == iamMethod {
 		idx := strings.LastIndex(path, iamPath)
 		if idx == (len(path) - len(iamPath)) {
@@ -63,12 +60,12 @@ func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 			logger.Info("Serving IAM credentials request")
 			handler.serveIAMRequest(ctx, addr, path, logger)
 			return
-		} else if (upstreamDisabledOpt == "true") {
+		} else if *upstreamDisabled {
 			logger.Info("Denying non-IAM endpoint request")
 			handler.serveDeniedRequest(ctx, addr, path, logger)
 			return
 		}
-	} else if (upstreamDisabledOpt == "true") {
+	} else if *upstreamDisabled {
 		logger.Info("Denying non-IAM endpoint request")
 		handler.serveDeniedRequest(ctx, addr, path, logger)
 		return

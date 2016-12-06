@@ -21,6 +21,7 @@ var (
 	eventHandlers           = flag.Int("event-handlers", 4, "Number of workers listening to the Docker Events channel")
 	dockerSyncPeriod        = flag.Duration("docker-sync-period", 0*time.Second, "Frequency of Docker Container sync; default is never")
 	credentialRefreshPeriod = flag.Duration("credential-refresh-period", time.Minute, "Frequency of the IAM credential sync")
+	disableUpstream         = flag.Bool("disable-upstream", false, "Whether non-IAM metadata requests should be reverse proxied")
 	verbose                 = flag.Bool("verbose", false, "Enable verbose logging")
 )
 
@@ -51,6 +52,7 @@ func main() {
 		WriteTimeout:            *writeTimeout,
 		DockerSyncPeriod:        *dockerSyncPeriod,
 		CredentialRefreshPeriod: *credentialRefreshPeriod,
+		DisableUpstream:         *disableUpstream,
 	}
 	dockerClient, err := docker.NewClientFromEnv()
 	if err != nil {
