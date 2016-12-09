@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"os"
 )
 
 const (
@@ -34,6 +33,7 @@ func NewIAMHandler(upstream http.Handler, containerStore docker.ContainerStore, 
 		upstreamHandler: adaptor.NewFastHTTPHandler(upstream),
 		containerStore:  containerStore,
 		credentialStore: credentialStore,
+		disableUpstream: disableUpstream,
 	}
 
 	return handler.serveFastHTTP
@@ -60,12 +60,12 @@ func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 			logger.Info("Serving IAM credentials request")
 			handler.serveIAMRequest(ctx, addr, path, logger)
 			return
-		} else if *upstreamDisabled {
+		} else if handler.disableUpstream {
 			logger.Info("Denying non-IAM endpoint request")
 			handler.serveDeniedRequest(ctx, addr, path, logger)
 			return
 		}
-	} else if *upstreamDisabled {
+	} else if handler.disableUpstream {
 		logger.Info("Denying non-IAM endpoint request")
 		handler.serveDeniedRequest(ctx, addr, path, logger)
 		return
@@ -144,4 +144,5 @@ type httpHandler struct {
 	upstreamHandler fasthttp.RequestHandler
 	containerStore  docker.ContainerStore
 	credentialStore iam.CredentialStore
+	disableUpstream bool
 }
