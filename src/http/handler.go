@@ -28,11 +28,12 @@ var (
 // When the request is for the IAM path, it looks up the IAM role in the
 // container store and fetches those credentials. Otherwise, it acts as a
 // reverse proxy for the real API.
-func NewIAMHandler(upstream http.Handler, containerStore docker.ContainerStore, credentialStore iam.CredentialStore) fasthttp.RequestHandler {
+func NewIAMHandler(upstream http.Handler, containerStore docker.ContainerStore, credentialStore iam.CredentialStore, disableUpstream bool) fasthttp.RequestHandler {
 	handler := &httpHandler{
 		upstreamHandler: adaptor.NewFastHTTPHandler(upstream),
 		containerStore:  containerStore,
 		credentialStore: credentialStore,
+		disableUpstream: disableUpstream,
 	}
 
 	return handler.serveFastHTTP
@@ -59,7 +60,15 @@ func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 			logger.Info("Serving IAM credentials request")
 			handler.serveIAMRequest(ctx, addr, path, logger)
 			return
+		} else if handler.disableUpstream {
+			logger.Info("Denying non-IAM endpoint request")
+			handler.serveDeniedRequest(ctx, addr, path, logger)
+			return
 		}
+	} else if handler.disableUpstream {
+		logger.Info("Denying non-IAM endpoint request")
+		handler.serveDeniedRequest(ctx, addr, path, logger)
+		return
 	}
 
 	logger.Debug("Delegating request upstream")
@@ -113,6 +122,11 @@ func (handler *httpHandler) serveListCredentialsRequest(ctx *fasthttp.RequestCtx
 	logger.Debug("Successfully responded")
 }
 
+func (handler *httpHandler) serveDeniedRequest(ctx *fasthttp.RequestCtx, addr string, path string, logger *logrus.Entry) {
+	ctx.SetStatusCode(403)
+	logger.Debug("Successfully responded")
+}
+
 func (handler *httpHandler) credentialsForAddress(address string) (*string, *sts.Credentials, error) {
 	ip := strings.Split(address, ":")[0]
 	role, err := handler.containerStore.IAMRoleForIP(ip)
@@ -130,4 +144,5 @@ type httpHandler struct {
 	upstreamHandler fasthttp.RequestHandler
 	containerStore  docker.ContainerStore
 	credentialStore iam.CredentialStore
+	disableUpstream bool
 }

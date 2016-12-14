@@ -23,4 +23,5 @@ type Config struct {
 	WriteTimeout            time.Duration
 	DockerSyncPeriod        time.Duration
 	CredentialRefreshPeriod time.Duration
+	DisableUpstream         bool
 }
