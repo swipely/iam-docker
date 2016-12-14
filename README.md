@@ -1,6 +1,6 @@
 # IAM Docker [![Build Status](https://travis-ci.org/swipely/iam-docker.svg?branch=master)](https://travis-ci.org/swipely/iam-docker)
 
-This project allows Docker containers to use different EC2 instance roles.
+This project allows Docker containers to use different EC2 instance roles from their host.
 You can pull release images from [Docker Hub](https://hub.docker.com/r/swipely/iam-docker/).
 
 ![Example gif](https://s3.amazonaws.com/swipely-pub/public-images/iam-docker-latest.gif)
@@ -16,7 +16,7 @@ Developers must then choose between running one cluster with a wide set of permi
 The former allows you to run multiple applications on a single instance at the cost of security, while the later is optimally secure at the cost of instance count.
 Using `iam-docker`, a single server can run multiple applications without paying a security penalty.
 
-Note that `iam-docker` doesn't necessarily need to be used with ECS – or even EC2. Any machine running Docker can run use it.
+Note that `iam-docker` doesn't necessarily need to be used with ECS – or even EC2. Any machine running Docker can run it.
 
 ## Usage
 
@@ -79,8 +79,8 @@ $ docker run -e IAM_ROLE="$PROFILE" "$IMAGE"
 ## How it works
 
 The application listens to the [Docker events stream](https://docs.docker.com/engine/reference/commandline/events/) for container start events.
-When a container is started with an `com.swipely.iam-docker.iam-profile` label, the application assumes that role (if possible).
-When the container makes an [EC2 Metadata API](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html) EC2 metadata API request, it's forwarded to the application because of the `iptables` rule above.
+When a container is started with a `com.swipely.iam-docker.iam-profile` label, the application assumes that role (if possible).
+When the container makes an [EC2 Metadata API](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html), it's forwarded to the application because of the `iptables` rule above.
 If the request is for IAM credentials, the application intercepts that and determines which credentials should be passed back to the container.
 
 All credentials are kept fresh, so there should be minimal latency when making API requests.
