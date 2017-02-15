@@ -56,9 +56,7 @@ func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 		logger.Debug("Serving health check request")
 		handler.serveHealthRequest(ctx, logger)
 		return
-	}
-
-	if method == iamMethod {
+	} else if method == iamMethod {
 		idx := strings.LastIndex(path, iamPath)
 		if idx == (len(path) - len(iamPath)) {
 			logger.Debug("Serving list IAM credentials request")
