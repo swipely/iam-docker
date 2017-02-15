@@ -18,6 +18,8 @@ const (
 	credentialType = "AWS-HMAC"
 	credentialCode = "Success"
 	iamPath        = "/meta-data/iam/security-credentials/"
+	healthMethod   = "GET"
+	healthPath     = "/healthcheck"
 )
 
 var (
@@ -49,6 +51,12 @@ func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 		"method":     method,
 		"remoteAddr": addr,
 	})
+
+	if method == healthMethod && path == healthPath {
+		logger.Debug("Serving health check request")
+		handler.serveHealthRequest(ctx, logger)
+		return
+	}
 
 	if method == iamMethod {
 		idx := strings.LastIndex(path, iamPath)
@@ -124,6 +132,11 @@ func (handler *httpHandler) serveListCredentialsRequest(ctx *fasthttp.RequestCtx
 
 func (handler *httpHandler) serveDeniedRequest(ctx *fasthttp.RequestCtx, addr string, path string, logger *logrus.Entry) {
 	ctx.SetStatusCode(403)
+	logger.Debug("Successfully responded")
+}
+
+func (handler *httpHandler) serveHealthRequest(ctx *fasthttp.RequestCtx, logger *logrus.Entry) {
+	ctx.SetStatusCode(200)
 	logger.Debug("Successfully responded")
 }
 
