@@ -144,11 +144,11 @@ func (handler *httpHandler) credentialsForAddress(address string) (*string, *sts
 	if err != nil {
 		return nil, nil, err
 	}
-	creds, err := handler.credentialStore.CredentialsForRole(role)
+	creds, err := handler.credentialStore.CredentialsForRole(role.Arn, role.ExternalId)
 	if err != nil {
 		return nil, nil, err
 	}
-	return &role, creds, nil
+	return &role.Arn, creds, nil
 }
 
 type httpHandler struct {

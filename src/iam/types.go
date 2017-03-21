@@ -13,7 +13,7 @@ type STSClient interface {
 // stale.
 type CredentialStore interface {
 	// Lookup the credentials for the given ARN.
-	CredentialsForRole(arn string) (*sts.Credentials, error)
+	CredentialsForRole(arn, externalId string) (*sts.Credentials, error)
 	// Refresh all the credentials that are expired or are about to expire.
 	RefreshCredentials()
 }

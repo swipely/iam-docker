@@ -60,7 +60,8 @@ $ sudo iptables -t nat \
                 -i "$INTERFACE"
 ```
 
-When starting containers, set their `com.swipely.iam-docker.iam-profile` label:
+When starting containers, set their `com.swipely.iam-docker.iam-profile` (an optionally, `com.swipely.iam-docker.iam-externalid` if
+your role requires an external ID) label:
 
 ```bash
 $ export IMAGE="ubuntu:latest"
@@ -68,7 +69,7 @@ $ export PROFILE="arn:aws:iam::1234123412:role/some-role"
 $ docker run --label com.swipely.iam-docker.iam-profile="$PROFILE" "$IMAGE"
 ```
 
-Alternately, set the `IAM_ROLE` environment variable:
+Alternately, set the `IAM_ROLE` (and optionally `IAM_ROLE_EXTERNALID`) environment variable:
 
 ```bash
 $ export IMAGE="ubuntu:latest"

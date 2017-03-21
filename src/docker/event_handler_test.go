@@ -73,6 +73,7 @@ var _ = Describe("EventHandler", func() {
 			Context("When the container has com.swipely.iam-docker.iam-profile set", func() {
 				var (
 					role            = "test-role"
+					externalId      = "eid"
 					accessKeyID     = "test-access-key-id"
 					secretAccessKey = "test-secret-access-key"
 					expiration      = time.Now().Add(time.Hour)
@@ -90,7 +91,7 @@ var _ = Describe("EventHandler", func() {
 					}
 					_ = dockerClient.AddContainer(&docker.Container{
 						ID:     id,
-						Config: &docker.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
+						Config: &docker.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role, "com.swipely.iam-docker.iam-externalid": externalId}},
 						NetworkSettings: &docker.NetworkSettings{
 							Networks: map[string]docker.ContainerNetwork{
 								"bridge": docker.ContainerNetwork{
@@ -104,7 +105,8 @@ var _ = Describe("EventHandler", func() {
 				It("Attempts to assume that role", func() {
 					close(channel)
 					waitGroup.Wait()
-					_, err := containerStore.IAMRoleForID(id)
+					r, err := containerStore.IAMRoleForID(id)
+					Expect(r.ExternalId).To(Equal("eid"))
 					Expect(err).To(BeNil())
 				})
 			})
@@ -136,6 +138,7 @@ var _ = Describe("EventHandler", func() {
 			Context("When the container is in the store", func() {
 				var (
 					role            = "test-role"
+					externalId      = ""
 					accessKeyID     = "test-access-key-id"
 					secretAccessKey = "test-secret-access-key"
 					expiration      = time.Now().Add(time.Hour)
@@ -153,7 +156,7 @@ var _ = Describe("EventHandler", func() {
 					}
 					_ = dockerClient.AddContainer(&docker.Container{
 						ID:              id,
-						Config:          &docker.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role}},
+						Config:          &docker.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": role, "com.swipely.iam-docker.iam-externalid": externalId}},
 						NetworkSettings: &docker.NetworkSettings{IPAddress: ip},
 					})
 					_ = dockerClient.RemoveContainer(id)
@@ -164,7 +167,7 @@ var _ = Describe("EventHandler", func() {
 					waitGroup.Wait()
 					_, err := containerStore.IAMRoleForID(id)
 					Expect(err).ToNot(BeNil())
-					creds, err := credentialStore.CredentialsForRole(role)
+					creds, err := credentialStore.CredentialsForRole(role, externalId)
 					Expect(err).To(BeNil())
 					Expect(*creds.AccessKeyId).To(Equal(accessKeyID))
 				})
