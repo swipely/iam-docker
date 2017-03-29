@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/swipely/iam-docker/src/docker"
 	"github.com/swipely/iam-docker/src/mock"
-	"sort"
 )
 
 var _ = Describe("ContainerStore", func() {
@@ -46,7 +45,7 @@ var _ = Describe("ContainerStore", func() {
 				err := subject.AddContainerByID(id)
 				Expect(err).ToNot(BeNil())
 				role, err := subject.IAMRoleForID(id)
-				Expect(role).To(Equal(""))
+				Expect(role.Arn).To(Equal(""))
 				Expect(err).ToNot(BeNil())
 			})
 		})
@@ -78,7 +77,7 @@ var _ = Describe("ContainerStore", func() {
 					err := subject.AddContainerByID(id)
 					Expect(err).ToNot(BeNil())
 					role, err := subject.IAMRoleForID(id)
-					Expect(role).To(Equal(""))
+					Expect(role.Arn).To(Equal(""))
 					Expect(err).ToNot(BeNil())
 				})
 			})
@@ -105,7 +104,7 @@ var _ = Describe("ContainerStore", func() {
 					err := subject.AddContainerByID(id)
 					Expect(err).To(BeNil())
 					actual, err := subject.IAMRoleForID(id)
-					Expect(actual).To(Equal(role))
+					Expect(actual.Arn).To(Equal(role))
 					Expect(err).To(BeNil())
 				})
 			})
@@ -139,7 +138,7 @@ var _ = Describe("ContainerStore", func() {
 					err := subject.AddContainerByID(id)
 					Expect(err).ToNot(BeNil())
 					role, err := subject.IAMRoleForID(id)
-					Expect(role).To(Equal(""))
+					Expect(role.Arn).To(Equal(""))
 					Expect(err).ToNot(BeNil())
 				})
 			})
@@ -167,7 +166,7 @@ var _ = Describe("ContainerStore", func() {
 					err := subject.AddContainerByID(id)
 					Expect(err).To(BeNil())
 					actual, err := subject.IAMRoleForID(id)
-					Expect(actual).To(Equal(role))
+					Expect(actual.Arn).To(Equal(role))
 					Expect(err).To(BeNil())
 				})
 			})
@@ -176,7 +175,16 @@ var _ = Describe("ContainerStore", func() {
 
 	Describe("IAMRoles", func() {
 		var (
-			roles = []string{"arn:aws:iam::012345678901:role/alpha", "arn:aws:iam::012345678901:role/beta"}
+			roles = []ComplexRole{
+				ComplexRole{
+					Arn:        "arn:aws:iam::012345678901:role/alpha",
+					ExternalId: "",
+				},
+				ComplexRole{
+					Arn:        "arn:aws:iam::012345678901:role/beta",
+					ExternalId: "",
+				},
+			}
 		)
 
 		BeforeEach(func() {
@@ -218,9 +226,7 @@ var _ = Describe("ContainerStore", func() {
 
 		It("Returns the IAM roles that are stored", func() {
 			actual := subject.IAMRoles()
-			sort.Strings(actual)
-			sort.Strings(roles)
-			Expect(actual).To(Equal(roles))
+			Expect(len(actual)).To(Equal(len(roles)))
 		})
 	})
 
@@ -232,7 +238,7 @@ var _ = Describe("ContainerStore", func() {
 		Context("When the ID is not stored", func() {
 			It("Returns an error", func() {
 				actual, err := subject.IAMRoleForID(id)
-				Expect(actual).To(Equal(""))
+				Expect(actual.Arn).To(Equal(""))
 				Expect(err).ToNot(BeNil())
 			})
 		})
@@ -259,7 +265,7 @@ var _ = Describe("ContainerStore", func() {
 
 			It("Returns the IAM role", func() {
 				actual, err := subject.IAMRoleForID(id)
-				Expect(actual).To(Equal(role))
+				Expect(actual.Arn).To(Equal(role))
 				Expect(err).To(BeNil())
 			})
 		})
@@ -276,10 +282,10 @@ var _ = Describe("ContainerStore", func() {
 		Context("When the IP is not stored", func() {
 			It("Returns an error", func() {
 				actual, err := subject.IAMRoleForIP(ipOne)
-				Expect(actual).To(Equal(""))
+				Expect(actual.Arn).To(Equal(""))
 				Expect(err).ToNot(BeNil())
 				actual, err = subject.IAMRoleForIP(ipTwo)
-				Expect(actual).To(Equal(""))
+				Expect(actual.Arn).To(Equal(""))
 				Expect(err).ToNot(BeNil())
 			})
 		})
@@ -305,10 +311,10 @@ var _ = Describe("ContainerStore", func() {
 
 			It("Returns the IAM role", func() {
 				actual, err := subject.IAMRoleForIP(ipOne)
-				Expect(actual).To(Equal(role))
+				Expect(actual.Arn).To(Equal(role))
 				Expect(err).To(BeNil())
 				actual, err = subject.IAMRoleForIP(ipTwo)
-				Expect(actual).To(Equal(role))
+				Expect(actual.Arn).To(Equal(role))
 				Expect(err).To(BeNil())
 			})
 		})
@@ -324,11 +330,11 @@ var _ = Describe("ContainerStore", func() {
 		Context("When the ID is not stored", func() {
 			It("Does not change the store", func() {
 				actual, err := subject.IAMRoleForID(id)
-				Expect(actual).To(Equal(""))
+				Expect(actual.Arn).To(Equal(""))
 				Expect(err).ToNot(BeNil())
 				subject.RemoveContainer(id)
 				actual, err = subject.IAMRoleForID(id)
-				Expect(actual).To(Equal(""))
+				Expect(actual.Arn).To(Equal(""))
 				Expect(err).ToNot(BeNil())
 			})
 		})
@@ -351,11 +357,11 @@ var _ = Describe("ContainerStore", func() {
 
 			It("Removes the container", func() {
 				actual, err := subject.IAMRoleForID(id)
-				Expect(actual).To(Equal(role))
+				Expect(actual.Arn).To(Equal(role))
 				Expect(err).To(BeNil())
 				subject.RemoveContainer(id)
 				actual, err = subject.IAMRoleForID(id)
-				Expect(actual).To(Equal(""))
+				Expect(actual.Arn).To(Equal(""))
 				Expect(err).ToNot(BeNil())
 			})
 		})
@@ -376,7 +382,7 @@ var _ = Describe("ContainerStore", func() {
 			})
 			_ = client.AddContainer(&dockerClient.Container{
 				ID:     "EF10A722",
-				Config: &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/writer"}},
+				Config: &dockerClient.Config{Labels: map[string]string{"com.swipely.iam-docker.iam-profile": "arn:aws:iam::012345678901:role/writer", "com.swipely.iam-docker.iam-externalid": "eid"}},
 				NetworkSettings: &dockerClient.NetworkSettings{
 					Networks: map[string]dockerClient.ContainerNetwork{
 						"bridge": dockerClient.ContainerNetwork{
@@ -402,13 +408,15 @@ var _ = Describe("ContainerStore", func() {
 			err := subject.SyncRunningContainers()
 			Expect(err).To(BeNil())
 			role, err := subject.IAMRoleForIP("172.0.0.15")
-			Expect(role).To(Equal("arn:aws:iam::012345678901:role/reader"))
+			Expect(role.Arn).To(Equal("arn:aws:iam::012345678901:role/reader"))
+			Expect(role.ExternalId).To(Equal(""))
 			Expect(err).To(BeNil())
 			role, err = subject.IAMRoleForIP("172.0.0.16")
-			Expect(role).To(Equal("arn:aws:iam::012345678901:role/writer"))
+			Expect(role.Arn).To(Equal("arn:aws:iam::012345678901:role/writer"))
+			Expect(role.ExternalId).To(Equal("eid"))
 			Expect(err).To(BeNil())
 			role, err = subject.IAMRoleForIP("172.0.0.17")
-			Expect(role).To(Equal(""))
+			Expect(role.Arn).To(Equal(""))
 			Expect(err).ToNot(BeNil())
 		})
 	})

@@ -9,11 +9,13 @@ import (
 )
 
 const (
-	iamLabel               = "com.swipely.iam-docker.iam-profile"
-	iamEnvironmentVariable = "IAM_ROLE"
-	retrySleepBase         = time.Second
-	retrySleepMultiplier   = 2
-	maxRetries             = 3
+	iamLabel                         = "com.swipely.iam-docker.iam-profile"
+	iamExternalIdLabel               = "com.swipely.iam-docker.iam-externalid"
+	iamEnvironmentVariable           = "IAM_ROLE"
+	iamExternalIdEnvironmentVariable = "IAM_ROLE_EXTERNALID"
+	retrySleepBase                   = time.Second
+	retrySleepMultiplier             = 2
+	maxRetries                       = 3
 )
 
 var (
@@ -22,6 +24,11 @@ var (
 		Size: false,
 	}
 )
+
+type ComplexRole struct {
+	Arn        string
+	ExternalId string
+}
 
 // NewContainerStore creates an empty container store.
 func NewContainerStore(client RawClient) ContainerStore {
@@ -57,27 +64,33 @@ func (store *containerStore) AddContainerByID(id string) error {
 	return nil
 }
 
-func (store *containerStore) IAMRoles() []string {
+func (store *containerStore) IAMRoles() []ComplexRole {
 	log.Debug("Fetching unique IAM Roles in the store")
 
 	store.mutex.RLock()
 	iamSet := make(map[string]bool, len(store.configByContainerID))
+	externalId := make(map[string]string, len(store.configByContainerID))
 	for _, config := range store.configByContainerID {
 		iamSet[config.iamRole] = true
+		externalId[config.iamRole] = config.externalId
 	}
 	store.mutex.RUnlock()
 
-	iamRoles := make([]string, len(iamSet))
+	iamRoles := make([]ComplexRole, len(iamSet))
 	count := 0
 	for role := range iamSet {
-		iamRoles[count] = role
+		r := ComplexRole{
+			Arn:        role,
+			ExternalId: externalId[role],
+		}
+		iamRoles[count] = r
 		count++
 	}
 
 	return iamRoles
 }
 
-func (store *containerStore) IAMRoleForID(id string) (string, error) {
+func (store *containerStore) IAMRoleForID(id string) (ComplexRole, error) {
 	log.WithField("id", id).Debug("Looking up IAM role")
 
 	store.mutex.RLock()
@@ -85,13 +98,17 @@ func (store *containerStore) IAMRoleForID(id string) (string, error) {
 
 	config, hasKey := store.configByContainerID[id]
 	if !hasKey {
-		return "", fmt.Errorf("Unable to find config for container: %s", id)
+		return ComplexRole{}, fmt.Errorf("Unable to find config for container: %s", id)
 	}
 
-	return config.iamRole, nil
+	iamRole := ComplexRole{
+		Arn:        config.iamRole,
+		ExternalId: config.externalId,
+	}
+	return iamRole, nil
 }
 
-func (store *containerStore) IAMRoleForIP(ip string) (string, error) {
+func (store *containerStore) IAMRoleForIP(ip string) (ComplexRole, error) {
 	log.WithField("ip", ip).Debug("Looking up IAM role")
 
 	store.mutex.RLock()
@@ -99,15 +116,19 @@ func (store *containerStore) IAMRoleForIP(ip string) (string, error) {
 
 	id, hasKey := store.containerIDsByIP[ip]
 	if !hasKey {
-		return "", fmt.Errorf("Unable to find container for IP: %s", ip)
+		return ComplexRole{}, fmt.Errorf("Unable to find container for IP: %s", ip)
 	}
 
 	config, hasKey := store.configByContainerID[id]
 	if !hasKey {
-		return "", fmt.Errorf("Unable to find config for container: %s", id)
+		return ComplexRole{}, fmt.Errorf("Unable to find config for container: %s", id)
 	}
 
-	return config.iamRole, nil
+	iamRole := ComplexRole{
+		Arn:        config.iamRole,
+		ExternalId: config.externalId,
+	}
+	return iamRole, nil
 }
 
 func (store *containerStore) RemoveContainer(id string) {
@@ -174,12 +195,15 @@ func (store *containerStore) findConfigForID(id string) (*containerConfig, error
 		return nil, fmt.Errorf("Container has no network settings: %s", id)
 	}
 
+	externalId, _ := container.Config.Labels[iamExternalIdLabel]
 	iamRole, hasLabel := container.Config.Labels[iamLabel]
 	if !hasLabel {
 		env := dockerClient.Env(container.Config.Env)
 		envRole := env.Get(iamEnvironmentVariable)
+		envExternalId := env.Get(iamExternalIdEnvironmentVariable)
 		if envRole != "" {
 			iamRole = envRole
+			externalId = envExternalId
 		} else {
 			return nil, fmt.Errorf("Unable to find label named '%s' or environment variable '%s' for container: %s", iamLabel, iamEnvironmentVariable, id)
 		}
@@ -198,9 +222,10 @@ func (store *containerStore) findConfigForID(id string) (*containerConfig, error
 	}
 
 	config := &containerConfig{
-		id:      id,
-		ips:     ips,
-		iamRole: iamRole,
+		id:         id,
+		ips:        ips,
+		iamRole:    iamRole,
+		externalId: externalId,
 	}
 
 	return config, nil
@@ -245,9 +270,10 @@ func withRetries(lambda func() error) error {
 }
 
 type containerConfig struct {
-	id      string
-	ips     []string
-	iamRole string
+	id         string
+	ips        []string
+	iamRole    string
+	externalId string
 }
 
 type containerStore struct {

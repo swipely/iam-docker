@@ -22,14 +22,15 @@ var (
 // IAM credentials.
 func NewCredentialStore(client STSClient, seed int64) CredentialStore {
 	return &credentialStore{
-		client: client,
-		creds:  make(map[string]*sts.Credentials),
-		rng:    rand.New(rand.NewSource(seed)),
+		client:      client,
+		creds:       make(map[string]*sts.Credentials),
+		externalIds: make(map[string]string),
+		rng:         rand.New(rand.NewSource(seed)),
 	}
 }
 
-func (store *credentialStore) CredentialsForRole(arn string) (*sts.Credentials, error) {
-	return store.refreshCredential(arn, realTimeGracePeriod)
+func (store *credentialStore) CredentialsForRole(arn, externalId string) (*sts.Credentials, error) {
+	return store.refreshCredential(arn, externalId, realTimeGracePeriod)
 }
 
 func (store *credentialStore) RefreshCredentials() {
@@ -44,18 +45,19 @@ func (store *credentialStore) RefreshCredentials() {
 	store.credMutex.RUnlock()
 
 	for _, arn := range arns {
-		_, err := store.refreshCredential(arn, refreshGracePeriod)
+		_, err := store.refreshCredential(arn, store.externalIds[arn], refreshGracePeriod)
 		if err != nil {
 			log.WithFields(logrus.Fields{
-				"role":  arn,
-				"error": err.Error(),
+				"role":      arn,
+				"exteralId": store.externalIds[arn],
+				"error":     err.Error(),
 			}).Warn("Unable to refresh credential")
 		}
 	}
 	log.Info("Done refreshing all IAM credentials")
 }
 
-func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Duration) (*sts.Credentials, error) {
+func (store *credentialStore) refreshCredential(arn, externalId string, gracePeriod time.Duration) (*sts.Credentials, error) {
 	clog := log.WithField("arn", arn)
 	clog.Debug("Checking for stale credential")
 	store.credMutex.RLock()
@@ -75,11 +77,15 @@ func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Dur
 	duration := int64(3600)
 	sessionName := store.generateSessionName()
 
-	output, err := store.client.AssumeRole(&sts.AssumeRoleInput{
+	stsInput := &sts.AssumeRoleInput{
 		RoleArn:         &arn,
 		DurationSeconds: &duration,
 		RoleSessionName: &sessionName,
-	})
+	}
+	if externalId != "" {
+		stsInput.ExternalId = &externalId
+	}
+	output, err := store.client.AssumeRole(stsInput)
 
 	if err != nil {
 		return nil, err
@@ -90,6 +96,7 @@ func (store *credentialStore) refreshCredential(arn string, gracePeriod time.Dur
 	clog.Info("Credential successfully refreshed")
 	store.credMutex.Lock()
 	store.creds[arn] = output.Credentials
+	store.externalIds[arn] = externalId
 	store.credMutex.Unlock()
 
 	return output.Credentials, nil
@@ -112,9 +119,10 @@ func (store *credentialStore) generateSessionName() string {
 }
 
 type credentialStore struct {
-	client    STSClient
-	creds     map[string]*sts.Credentials
-	rng       *rand.Rand
-	rngMutex  sync.Mutex
-	credMutex sync.RWMutex
+	client      STSClient
+	creds       map[string]*sts.Credentials
+	externalIds map[string]string
+	rng         *rand.Rand
+	rngMutex    sync.Mutex
+	credMutex   sync.RWMutex
 }

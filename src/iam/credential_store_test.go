@@ -22,13 +22,14 @@ var _ = Describe("CredentialStore", func() {
 
 	Describe("CredentialsForRole", func() {
 		const (
-			role = "arn:aws:iam::012345678901:role/test"
+			role       = "arn:aws:iam::012345678901:role/test"
+			externalId = ""
 		)
 
 		Context("When the credentials have not been assumed", func() {
 			Context("When the credentials cannot be assumed", func() {
 				It("Returns an error", func() {
-					creds, err := subject.CredentialsForRole(role)
+					creds, err := subject.CredentialsForRole(role, externalId)
 					Expect(creds).To(BeNil())
 					Expect(err).ToNot(BeNil())
 				})
@@ -52,7 +53,7 @@ var _ = Describe("CredentialStore", func() {
 				})
 
 				It("Returns the credentials", func() {
-					creds, err := subject.CredentialsForRole(role)
+					creds, err := subject.CredentialsForRole(role, externalId)
 					Expect(creds).ToNot(BeNil())
 					Expect(err).To(BeNil())
 					Expect(*creds.AccessKeyId).To(Equal(accessKeyID))
@@ -79,7 +80,7 @@ var _ = Describe("CredentialStore", func() {
 
 			BeforeEach(func() {
 				client.AssumableRoles[role] = creds
-				_, _ = subject.CredentialsForRole(role)
+				_, _ = subject.CredentialsForRole(role, externalId)
 			})
 
 			Context("But they are about to go stale", func() {
@@ -100,7 +101,7 @@ var _ = Describe("CredentialStore", func() {
 				})
 
 				It("Refreshes them", func() {
-					creds, err := subject.CredentialsForRole(role)
+					creds, err := subject.CredentialsForRole(role, externalId)
 					Expect(creds).ToNot(BeNil())
 					Expect(err).To(BeNil())
 					Expect(*creds.AccessKeyId).To(Equal(accessKeyID))
@@ -117,7 +118,7 @@ var _ = Describe("CredentialStore", func() {
 				})
 
 				It("Returns the credentials", func() {
-					creds, err := subject.CredentialsForRole(role)
+					creds, err := subject.CredentialsForRole(role, externalId)
 					Expect(creds).ToNot(BeNil())
 					Expect(err).To(BeNil())
 					Expect(*creds.AccessKeyId).To(Equal(accessKeyID))
@@ -132,6 +133,7 @@ var _ = Describe("CredentialStore", func() {
 	Describe("RefreshCredentials", func() {
 		var (
 			role            = "arn:aws:iam::012345678901:role/test"
+			externalId      = ""
 			accessKeyID     = "fakeaccesskeyid"
 			oldExpiration   = time.Now()
 			newExpiration   = time.Now().Add(time.Hour)
@@ -153,12 +155,12 @@ var _ = Describe("CredentialStore", func() {
 
 		JustBeforeEach(func() {
 			client.AssumableRoles[role] = creds
-			_, _ = subject.CredentialsForRole(role)
+			_, _ = subject.CredentialsForRole(role, externalId)
 			client.AssumableRoles[role] = newCreds
 		})
 
 		It("Refreshes each credential in the store", func() {
-			found, err := subject.CredentialsForRole(role)
+			found, err := subject.CredentialsForRole(role, externalId)
 			Expect(creds).ToNot(BeNil())
 			Expect(err).To(BeNil())
 			Expect(*found.AccessKeyId).To(Equal(accessKeyID))

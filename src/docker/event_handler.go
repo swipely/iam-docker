@@ -60,7 +60,7 @@ func (handler *eventHandler) work(workerID int, channel <-chan *dockerClient.API
 			}
 			rlog := elog.WithFields(logrus.Fields{"role": role})
 			rlog.Info("Fetching credentials")
-			_, err = handler.credentialStore.CredentialsForRole(role)
+			_, err = handler.credentialStore.CredentialsForRole(role.Arn, role.ExternalId)
 			if err != nil {
 				rlog.WithField("error", err.Error()).Warn("Unable fetch credentials")
 				continue

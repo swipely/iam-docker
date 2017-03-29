@@ -18,6 +18,8 @@ const (
 	credentialType = "AWS-HMAC"
 	credentialCode = "Success"
 	iamPath        = "/meta-data/iam/security-credentials/"
+	healthMethod   = "GET"
+	healthPath     = "/healthcheck"
 )
 
 var (
@@ -50,7 +52,11 @@ func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 		"remoteAddr": addr,
 	})
 
-	if method == iamMethod {
+	if method == healthMethod && path == healthPath {
+		logger.Debug("Serving health check request")
+		handler.serveHealthRequest(ctx, logger)
+		return
+	} else if method == iamMethod {
 		idx := strings.LastIndex(path, iamPath)
 		if idx == (len(path) - len(iamPath)) {
 			logger.Debug("Serving list IAM credentials request")
@@ -127,17 +133,22 @@ func (handler *httpHandler) serveDeniedRequest(ctx *fasthttp.RequestCtx, addr st
 	logger.Debug("Successfully responded")
 }
 
+func (handler *httpHandler) serveHealthRequest(ctx *fasthttp.RequestCtx, logger *logrus.Entry) {
+	ctx.SetStatusCode(200)
+	logger.Debug("Successfully responded")
+}
+
 func (handler *httpHandler) credentialsForAddress(address string) (*string, *sts.Credentials, error) {
 	ip := strings.Split(address, ":")[0]
 	role, err := handler.containerStore.IAMRoleForIP(ip)
 	if err != nil {
 		return nil, nil, err
 	}
-	creds, err := handler.credentialStore.CredentialsForRole(role)
+	creds, err := handler.credentialStore.CredentialsForRole(role.Arn, role.ExternalId)
 	if err != nil {
 		return nil, nil, err
 	}
-	return &role, creds, nil
+	return &role.Arn, creds, nil
 }
 
 type httpHandler struct {

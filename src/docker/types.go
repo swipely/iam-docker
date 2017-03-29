@@ -13,9 +13,9 @@ var (
 // Instances of this interface should allow threadsafe reads and writes.
 type ContainerStore interface {
 	AddContainerByID(id string) error
-	IAMRoles() []string
-	IAMRoleForIP(ip string) (string, error)
-	IAMRoleForID(ip string) (string, error)
+	IAMRoles() []ComplexRole
+	IAMRoleForIP(ip string) (ComplexRole, error)
+	IAMRoleForID(ip string) (ComplexRole, error)
 	RemoveContainer(name string)
 	SyncRunningContainers() error
 }

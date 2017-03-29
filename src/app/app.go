@@ -125,16 +125,16 @@ func (app *App) syncRunningContainers(containerStore docker.ContainerStore, cred
 			"error": err.Error(),
 		}).Warn("Failed syncing running containers")
 	}
-	for _, arn := range containerStore.IAMRoles() {
-		_, err := credentialStore.CredentialsForRole(arn)
+	for _, role := range containerStore.IAMRoles() {
+		_, err := credentialStore.CredentialsForRole(role.Arn, role.ExternalId)
 		if err != nil {
 			logger.WithFields(logrus.Fields{
-				"arn":   arn,
+				"arn":   role,
 				"error": err.Error(),
 			}).Warn("Unable to fetch credential")
 		} else {
 			logger.WithFields(logrus.Fields{
-				"arn": arn,
+				"arn": role,
 			}).Info("Successfully fetched credential")
 		}
 	}
