@@ -1,5 +1,5 @@
 # CHANGELOG
-## v1.3.0
+## v1.4.0
 
 * Support IAM roles that have [ExternalIds](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html) (@iderdik)
 
