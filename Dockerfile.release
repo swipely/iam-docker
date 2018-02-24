@@ -1,7 +1,0 @@
-FROM scratch
-MAINTAINER Tom Hulihan (hulihan.tom159@gmail.com)
-ADD ./LICENSE /
-ADD ./dist/iam-docker /
-ADD ./dist/ca-certificates.crt /etc/ssl/certs/
-ENV GOMAXPROCS 4
-CMD ["/iam-docker"]

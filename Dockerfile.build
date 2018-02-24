@@ -1,5 +1,0 @@
-FROM golang:1.6
-MAINTAINER Tom Hulihan (hulihan.tom159@gmail.com)
-ADD . /go/src/github.com/swipely/iam-docker/
-WORKDIR /go/src/github.com/swipely/iam-docker/
-RUN make get-deps
