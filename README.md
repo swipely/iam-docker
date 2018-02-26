@@ -95,6 +95,5 @@ Commonly used commands:
 * `make get-deps` - install the system dependencies
 * `make test` - run the application tests
 * `make docker` - build a release Docker image
-* `make test-in-docker` - run the tests in Docker
 
 All source code is in the `src/` directory.
