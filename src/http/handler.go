@@ -2,22 +2,23 @@ package http
 
 import (
 	"encoding/json"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/swipely/iam-docker/src/docker"
 	"github.com/swipely/iam-docker/src/iam"
 	"github.com/valyala/fasthttp"
 	adaptor "github.com/valyala/fasthttp/fasthttpadaptor"
-	"net/http"
-	"strings"
-	"time"
 )
 
 const (
 	iamMethod      = "GET"
 	credentialType = "AWS-HMAC"
 	credentialCode = "Success"
-	iamPath        = "/meta-data/iam/security-credentials/"
+	iamPath        = "/meta-data/iam/security-credentials"
 )
 
 var (
@@ -52,11 +53,11 @@ func (handler *httpHandler) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 
 	if method == iamMethod {
 		idx := strings.LastIndex(path, iamPath)
-		if idx == (len(path) - len(iamPath)) {
+		if idx == (len(path)-len(iamPath)) || (idx == (len(path)-len(iamPath))-1 && path[len(path)-1] == '/') {
 			logger.Debug("Serving list IAM credentials request")
 			handler.serveListCredentialsRequest(ctx, addr, logger)
 			return
-		} else if idx >= 0 {
+		} else if idx >= 1 {
 			logger.Info("Serving IAM credentials request")
 			handler.serveIAMRequest(ctx, addr, path, logger)
 			return
