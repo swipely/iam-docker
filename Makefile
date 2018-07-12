@@ -1,4 +1,4 @@
-GO=CGO_ENABLED=0 godep go
+GO=CGO_ENABLED=0 go
 GO_BUILD_OPTS=-a --tags netgo --ldflags '-extldflags "-static"'
 SRCDIR=./src
 SRC=$(SRCDIR)/...
@@ -22,9 +22,6 @@ build:
 test:
 	$(GO) test $(TEST_OPTS) $(SRC)
 
-get-deps:
-	go get -u github.com/tools/godep
-
 release: docker
 	git tag $(VERSION)
 	git push origin --tags
@@ -34,4 +31,4 @@ release: docker
 docker: $(SRCS) Dockerfile
 	$(DOCKER) build -t $(DOCKER_IMAGE) .
 
-.PHONY: build default docker get-deps release test
+.PHONY: build default docker release test

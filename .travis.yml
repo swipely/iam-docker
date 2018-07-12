@@ -1,4 +1,4 @@
 language: go
 go:
   - 1.6
-install: make get-deps
+  - "1.x"
