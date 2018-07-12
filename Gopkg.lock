@@ -56,7 +56,8 @@
     "external/golang.org/x/net/context",
     "external/golang.org/x/sys/unix"
   ]
-  revision = "73f08fbacc09c6fd1b7bc179193e58b14d7619cc"
+  revision = "1d4f4ae73768d3ca16a6fb964694f58dc5eba601"
+  version = "docker-1.9/go-1.4"
 
 [[projects]]
   name = "github.com/go-ini/ini"
