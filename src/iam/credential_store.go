@@ -2,7 +2,7 @@ package iam
 
 import (
 	"fmt"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"math/rand"
 	"sync"
