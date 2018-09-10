@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	dockerLib "github.com/fsouza/go-dockerclient"
 	"github.com/swipely/iam-docker/src/docker"
 	"github.com/swipely/iam-docker/src/http"

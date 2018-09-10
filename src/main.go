@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 	docker "github.com/fsouza/go-dockerclient"

@@ -2,7 +2,7 @@ package docker
 
 import (
 	"errors"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	dockerClient "github.com/fsouza/go-dockerclient"
 	iam "github.com/swipely/iam-docker/src/iam"
 	"sync"

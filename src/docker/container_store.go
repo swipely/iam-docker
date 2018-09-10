@@ -2,7 +2,7 @@ package docker
 
 import (
 	"fmt"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	dockerClient "github.com/fsouza/go-dockerclient"
 	"sync"
 	"time"

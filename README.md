@@ -87,12 +87,11 @@ All credentials are kept fresh, so there should be minimal latency when making A
 
 ## Development
 
-To build and test, you need to install [Go 1.6](https://golang.org/doc/go1.6) and [`godep`](https://github.com/tools/godep): `go get -u github.com/tools/godep`.
+To build and test, you need to install [Go 1.9](https://golang.org/doc/go1.9) and [`dep`](https://github.com/golang/dep).
 
 All development commands can be found in the `Makefile`.
 Commonly used commands:
 
-* `make get-deps` - install the system dependencies
 * `make test` - run the application tests
 * `make docker` - build a release Docker image
 

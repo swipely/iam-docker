@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/swipely/iam-docker/src/docker"
 	"github.com/swipely/iam-docker/src/iam"
